@@ -1,0 +1,3460 @@
+<meta name="claude:viewport-fit-sides" content="cover">
+<title>Lvrk Data</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
+<style>
+  /* Layout concept: single-screen app, sticky header + tab bar, scrolling content pane.
+     Palette drawn from MotiveWave charts: void-black field, magenta bear, cyan-blue long box. */
+  :root {
+    --bg: #141414;
+    --surface: #1a1a1a;
+    --surface-raised: #212121;
+    --surface-hover: #2a2a2a;
+    --border: #2a2a2a;
+    --border-strong: #3a3a3a;
+    --fg: #e8e8e8;
+    --fg-muted: #808080;
+    --fg-dim: #3a3a3a;
+    --accent: #CD073E;
+    --accent-dim: rgba(205, 7, 62, 0.16);
+    --loss: #757575;
+    --loss-dim: rgba(117, 117, 117, 0.20);
+    --win: #CD073E;
+    --win-dim: rgba(205, 7, 62, 0.14);
+    --warn: #cf8a28;
+    --font-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif;
+    --font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+    color-scheme: dark;
+  }
+
+  html, body { height: 100%; }
+  body {
+    background: var(--bg);
+    color: var(--fg);
+    font-family: var(--font-sans);
+    font-size: 14px;
+    line-height: 1.5;
+    margin: 0;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    overflow-x: hidden;
+  }
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0 0 auto;
+    height: env(safe-area-inset-top, 0px);
+    z-index: 100;
+    background: var(--bg);
+  }
+
+  * { box-sizing: border-box; }
+  button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; padding: 0; }
+  input, select, textarea { font: inherit; color: inherit; background: none; border: 0; outline: 0; padding: 0; }
+  input:focus-visible, select:focus-visible, textarea:focus-visible, button:focus-visible {
+    outline: 1px solid var(--accent);
+    outline-offset: 1px;
+  }
+
+  .mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+
+  /* ---------- Header ---------- */
+  .app {
+    display: flex;
+    flex-direction: column;
+    min-height: 100%;
+  }
+  .header {
+    position: sticky;
+    top: env(safe-area-inset-top, 0px);
+    z-index: 50;
+    background: rgba(20, 20, 20, 0.92);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+    padding-left: max(20px, env(safe-area-inset-left, 0px));
+    padding-right: max(20px, env(safe-area-inset-right, 0px));
+    padding-block: 14px;
+  }
+  .header-row {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    max-width: 1280px;
+    margin: 0 auto;
+  }
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    font-size: 15px;
+  }
+  .brand-mark {
+    width: 10px;
+    height: 10px;
+    border-radius: 2px;
+    background: var(--accent);
+    box-shadow: 0 0 10px var(--accent-dim);
+  }
+  .header-spacer { flex: 1; }
+  .header-meta {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 1px;
+  }
+  .header-meta-label {
+    font-size: 10px;
+    color: var(--fg-muted);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+  .header-meta-value {
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+  }
+  .btn-add {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 9px 14px 9px 12px;
+    border-radius: 6px;
+    background: var(--accent);
+    color: #ffffff;
+    font-weight: 600;
+    font-size: 13px;
+    letter-spacing: -0.005em;
+    transition: filter 120ms;
+  }
+  .btn-add:hover { filter: brightness(1.1); }
+  .btn-add .plus {
+    width: 14px; height: 14px;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 18px; line-height: 1;
+    font-weight: 400;
+  }
+
+  /* ---------- Tab bar ---------- */
+  .tabs {
+    display: flex;
+    gap: 4px;
+    max-width: 1280px;
+    margin: 10px auto 0;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .tabs::-webkit-scrollbar { display: none; }
+  .tab {
+    padding: 7px 12px;
+    border-radius: 5px;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--fg-muted);
+    letter-spacing: 0.01em;
+    transition: color 100ms, background 100ms;
+    white-space: nowrap;
+  }
+  .tab:hover { color: var(--fg); background: var(--surface-raised); }
+  .tab.active { color: var(--fg); background: var(--surface-raised); }
+
+  /* ---------- Main pane ---------- */
+  .main {
+    flex: 1;
+    padding-left: max(20px, env(safe-area-inset-left, 0px));
+    padding-right: max(20px, env(safe-area-inset-right, 0px));
+    padding-block: 24px 80px;
+  }
+  .inner { max-width: 1280px; margin: 0 auto; }
+
+  .section-label {
+    font-size: 10px;
+    color: var(--fg-muted);
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+  }
+  .section-label::before {
+    content: "";
+    width: 3px;
+    height: 3px;
+    border-radius: 50%;
+    background: var(--accent);
+    display: inline-block;
+    transform: translateY(-2px);
+  }
+
+  /* ---------- KPI tiles ---------- */
+  .kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1px;
+    background: var(--border);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+    margin-bottom: 24px;
+  }
+  .kpi {
+    background: var(--surface);
+    padding: 16px 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 0;
+  }
+  .kpi-label {
+    font-size: 10px;
+    color: var(--fg-muted);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+  .kpi-value {
+    font-size: 22px;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+  }
+  .kpi-sub {
+    font-size: 11px;
+    color: var(--fg-muted);
+    font-family: var(--font-mono);
+  }
+  .kpi-value.pos { color: var(--win); }
+  .kpi-value.neg { color: var(--loss); }
+
+  /* ---------- Recent trades ---------- */
+  .recent {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 4px 0;
+    overflow: hidden;
+  }
+  .recent-row {
+    display: grid;
+    grid-template-columns: 44px 70px 50px 1fr auto auto;
+    gap: 14px;
+    align-items: center;
+    padding: 11px 20px;
+    border-top: 1px solid var(--border);
+    font-size: 13px;
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    cursor: pointer;
+    transition: background 80ms;
+  }
+  .recent-row:hover { background: var(--surface-hover); }
+  .recent-row:first-child { border-top: 0; cursor: default; }
+  .recent-row:first-child:hover { background: transparent; }
+  .recent-row.head {
+    font-family: var(--font-sans);
+    font-size: 10px;
+    color: var(--fg-muted);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    font-weight: 500;
+    padding-top: 12px;
+    padding-bottom: 8px;
+    border-top: 0;
+  }
+  .recent-date { color: var(--fg-muted); font-size: 12px; }
+  .side-pill {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 20px;
+    border-radius: 3px;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    font-family: var(--font-sans);
+  }
+  .side-long { background: var(--accent-dim); color: var(--accent); }
+  .side-short { background: var(--loss-dim); color: var(--loss); }
+  .pnl-pos { color: var(--win); }
+  .pnl-neg { color: var(--loss); }
+  .r-mult { color: var(--fg-muted); font-size: 12px; }
+  .shot-thumb {
+    width: 32px; height: 24px;
+    border-radius: 3px;
+    object-fit: cover;
+    background: var(--surface-raised);
+    border: 1px solid var(--border);
+  }
+  .shot-count {
+    font-family: var(--font-sans);
+    font-size: 10px;
+    color: var(--fg-muted);
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  /* ---------- Trades table ---------- */
+  .trade-table-wrap {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow-x: auto;
+  }
+  table.trades {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    min-width: 860px;
+  }
+  table.trades thead th {
+    text-align: left;
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--fg-muted);
+    font-weight: 500;
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+    position: sticky;
+    top: 0;
+  }
+  table.trades tbody td {
+    padding: 11px 14px;
+    border-bottom: 1px solid var(--border);
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    vertical-align: middle;
+  }
+  table.trades tbody tr:last-child td { border-bottom: 0; }
+  table.trades tbody tr { transition: background 80ms; cursor: pointer; }
+  table.trades tbody tr:hover { background: var(--surface-hover); }
+  table.trades td.right { text-align: right; }
+  table.trades td.actions { text-align: right; }
+  .btn-row-icon {
+    color: var(--fg-dim);
+    padding: 4px 6px;
+    border-radius: 4px;
+    font-size: 11px;
+    transition: color 100ms, background 100ms;
+  }
+  .btn-row-icon:hover { color: var(--fg); background: var(--surface-raised); }
+
+  /* ---------- Filters bar ---------- */
+  .filters {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 14px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+  .filters input, .filters select {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    padding: 8px 11px;
+    font-size: 12px;
+    color: var(--fg);
+    min-width: 120px;
+  }
+  .filters input:focus, .filters select:focus { border-color: var(--accent); }
+  .filters .count {
+    margin-left: auto;
+    font-size: 11px;
+    color: var(--fg-muted);
+    font-family: var(--font-mono);
+  }
+
+  /* ---------- Stats ---------- */
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+  }
+  .stat-block {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  .stat-head {
+    padding: 14px 18px 10px;
+    border-bottom: 1px solid var(--border);
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--fg-muted);
+    font-weight: 500;
+  }
+  .stat-row {
+    display: grid;
+    grid-template-columns: 1fr auto auto auto auto;
+    gap: 14px;
+    padding: 10px 18px;
+    font-size: 12px;
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    border-top: 1px solid var(--border);
+    align-items: center;
+  }
+  .stat-row:first-of-type { border-top: 0; }
+  .stat-row.head {
+    font-family: var(--font-sans);
+    color: var(--fg-muted);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+  .stat-row .name { font-family: var(--font-sans); font-weight: 500; color: var(--fg); font-size: 13px; }
+  .stat-row .mut { color: var(--fg-muted); }
+
+  /* ---------- Settings ---------- */
+  .settings-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+  }
+  .settings-block {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 18px 20px;
+  }
+  .settings-block h3 {
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--fg-muted);
+    margin: 0 0 12px;
+    font-weight: 500;
+  }
+  .settings-block p { font-size: 12px; color: var(--fg-muted); margin: 0 0 14px; line-height: 1.5; }
+  .data-tools { display: flex; gap: 10px; flex-wrap: wrap; }
+  .btn-ghost {
+    padding: 9px 14px;
+    border-radius: 5px;
+    background: var(--surface-raised);
+    border: 1px solid var(--border-strong);
+    font-size: 12px;
+    color: var(--fg);
+    transition: background 100ms, border-color 100ms;
+  }
+  .btn-ghost:hover { background: var(--surface-hover); border-color: var(--fg-dim); }
+  .btn-danger {
+    padding: 9px 14px;
+    border-radius: 5px;
+    background: var(--surface-raised);
+    border: 1px solid var(--loss-dim);
+    color: var(--loss);
+    font-size: 12px;
+    transition: background 100ms;
+  }
+  .btn-danger:hover { background: var(--loss-dim); }
+
+  .instr-table {
+    width: 100%;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    border-collapse: collapse;
+  }
+  .instr-table th, .instr-table td { padding: 7px 0; text-align: left; font-weight: 400; }
+  .instr-table th { color: var(--fg-muted); font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; font-family: var(--font-sans); border-bottom: 1px solid var(--border); }
+  .instr-table td.right { text-align: right; }
+  .instr-table .rm { color: var(--fg-dim); padding: 2px 6px; font-size: 11px; }
+  .instr-table .rm:hover { color: var(--loss); }
+  .instr-add {
+    display: grid;
+    grid-template-columns: 1fr 1fr auto;
+    gap: 8px;
+    margin-top: 12px;
+  }
+  .instr-add input {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 8px 10px;
+    font-size: 12px;
+    font-family: var(--font-mono);
+  }
+  .instr-add input:focus { border-color: var(--accent); }
+
+  .chip-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 14px;
+    min-height: 20px;
+  }
+  .chip-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    padding: 5px 4px 5px 11px;
+    background: var(--surface-raised);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    font-size: 12px;
+    color: var(--fg);
+    font-family: var(--font-sans);
+  }
+  .chip-rm {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    color: var(--fg-dim);
+    font-size: 14px;
+    line-height: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: color 100ms, background 100ms;
+  }
+  .chip-rm:hover { color: var(--loss); background: var(--loss-dim); }
+  .chip-add {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 8px;
+  }
+  .chip-add input {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 8px 11px;
+    font-size: 12px;
+    font-family: var(--font-sans);
+  }
+  .chip-add input:focus { border-color: var(--accent); }
+
+  /* ---------- Modal ---------- */
+  .modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.72);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    z-index: 200;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding: max(60px, calc(env(safe-area-inset-top, 0px) + 40px)) 16px 60px;
+    overflow-y: auto;
+  }
+  .modal {
+    background: var(--surface);
+    border: 1px solid var(--border-strong);
+    border-radius: 10px;
+    max-width: 720px;
+    width: 100%;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+  }
+  .modal-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 18px 22px;
+    border-bottom: 1px solid var(--border);
+  }
+  .modal-title { font-size: 14px; font-weight: 600; letter-spacing: -0.01em; }
+  .modal-close { color: var(--fg-muted); font-size: 18px; padding: 4px 8px; border-radius: 4px; }
+  .modal-close:hover { color: var(--fg); background: var(--surface-raised); }
+  .modal-body { padding: 22px; }
+
+  /* ---------- Form ---------- */
+  .field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .field label {
+    font-size: 11px;
+    color: var(--fg-muted);
+    letter-spacing: 0.02em;
+  }
+  .field label .hint { color: var(--fg-dim); font-size: 10px; font-weight: 400; margin-left: 6px; }
+  .field input, .field select, .field textarea {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    padding: 9px 11px;
+    font-family: var(--font-mono);
+    font-size: 13px;
+    font-variant-numeric: tabular-nums;
+    transition: border-color 100ms;
+    width: 100%;
+  }
+  .field input:focus, .field select:focus, .field textarea:focus { border-color: var(--accent); outline: none; }
+  .field select { font-family: var(--font-sans); }
+  .field textarea { resize: vertical; min-height: 60px; font-family: var(--font-sans); font-size: 13px; }
+
+  .form-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 14px;
+  }
+  .form-grid .full { grid-column: 1 / -1; }
+
+  .side-toggle {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2px;
+    background: var(--border);
+    border-radius: 5px;
+    overflow: hidden;
+    padding: 2px;
+  }
+  .side-toggle button {
+    padding: 8px 10px;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    border-radius: 4px;
+    color: var(--fg-muted);
+    transition: background 100ms, color 100ms;
+  }
+  .side-toggle button.active[data-side="LONG"] { background: var(--accent-dim); color: var(--accent); }
+  .side-toggle button.active[data-side="SHORT"] { background: var(--loss-dim); color: var(--loss); }
+
+  .rating { display: flex; gap: 4px; }
+  .rating button {
+    flex: 1;
+    padding: 8px 0;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    font-size: 12px;
+    font-family: var(--font-mono);
+    color: var(--fg-muted);
+    transition: border-color 100ms, color 100ms, background 100ms;
+  }
+  .rating button.active {
+    background: var(--surface-raised);
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  .emo-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .emo-chips button {
+    padding: 6px 11px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    font-size: 11px;
+    color: var(--fg-muted);
+    transition: border-color 100ms, color 100ms;
+  }
+  .emo-chips button.active {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: var(--accent-dim);
+  }
+
+  /* ---------- Screenshots dropzone ---------- */
+  .dropzone {
+    border: 1px dashed var(--border-strong);
+    border-radius: 6px;
+    padding: 18px;
+    text-align: center;
+    transition: border-color 120ms, background 120ms;
+    cursor: pointer;
+    background: var(--bg);
+  }
+  .dropzone:hover { border-color: var(--accent); background: var(--surface-raised); }
+  .dropzone.drag { border-color: var(--accent); background: var(--accent-dim); }
+  .dropzone-title { font-size: 12px; color: var(--fg); font-weight: 500; margin-bottom: 4px; }
+  .dropzone-hint { font-size: 10px; color: var(--fg-muted); letter-spacing: 0.03em; }
+  .dropzone-hint kbd {
+    display: inline-block;
+    background: var(--surface-raised);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 1px 5px;
+    font-family: var(--font-mono);
+    font-size: 9px;
+    margin: 0 2px;
+  }
+  .thumbs {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+    gap: 8px;
+    margin-top: 10px;
+  }
+  .thumb-wrap {
+    position: relative;
+    aspect-ratio: 4 / 3;
+    border-radius: 5px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+    background: var(--bg);
+  }
+  .thumb-wrap img {
+    width: 100%; height: 100%; object-fit: cover; display: block;
+    cursor: zoom-in;
+  }
+  .thumb-wrap .rm-thumb {
+    position: absolute;
+    top: 4px; right: 4px;
+    width: 20px; height: 20px;
+    border-radius: 3px;
+    background: rgba(0,0,0,0.72);
+    color: var(--fg);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    transition: background 100ms, color 100ms;
+  }
+  .thumb-wrap .rm-thumb:hover { background: var(--loss); color: #ffffff; }
+
+  .live-preview {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1px;
+    background: var(--border);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+    margin-top: 18px;
+  }
+  .live-preview > div {
+    background: var(--surface-raised);
+    padding: 11px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+  .live-preview label {
+    font-size: 9px;
+    color: var(--fg-muted);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+  .live-preview span {
+    font-family: var(--font-mono);
+    font-size: 15px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+  }
+  .live-preview span.pos { color: var(--win); }
+  .live-preview span.neg { color: var(--loss); }
+
+  .modal-foot {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    padding: 16px 22px;
+    border-top: 1px solid var(--border);
+  }
+  .btn-primary {
+    padding: 10px 18px;
+    background: var(--accent);
+    color: #ffffff;
+    font-weight: 600;
+    font-size: 13px;
+    border-radius: 5px;
+    transition: filter 100ms;
+  }
+  .btn-primary:hover { filter: brightness(1.08); }
+
+  /* ---------- Wizard (QCM mode) ---------- */
+  .wiz-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(20, 20, 20, 0.96);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    z-index: 200;
+    display: flex;
+    align-items: stretch;
+    justify-content: center;
+    overflow-y: auto;
+  }
+  .wiz {
+    width: 100%;
+    max-width: 680px;
+    display: flex;
+    flex-direction: column;
+    padding: max(32px, env(safe-area-inset-top, 0px)) 20px calc(32px + env(safe-area-inset-bottom, 0px));
+    min-height: 100vh;
+  }
+  .wiz-top {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 36px;
+  }
+  .wiz-progress-track {
+    flex: 1;
+    height: 2px;
+    background: var(--border);
+    border-radius: 1px;
+    overflow: hidden;
+  }
+  .wiz-progress-fill {
+    height: 100%;
+    background: var(--accent);
+    border-radius: 1px;
+    transition: width 280ms cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 0 8px var(--accent-dim);
+  }
+  .wiz-step-indicator {
+    font-size: 10px;
+    color: var(--fg-muted);
+    font-family: var(--font-mono);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+  .wiz-close {
+    color: var(--fg-muted);
+    font-size: 20px;
+    padding: 2px 8px;
+    border-radius: 4px;
+    line-height: 1;
+    transition: color 100ms, background 100ms;
+  }
+  .wiz-close:hover { color: var(--fg); background: var(--surface-raised); }
+
+  .wiz-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+  }
+  .wiz-step {
+    display: none;
+    flex-direction: column;
+    animation: wiz-in 240ms cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .wiz-step.active { display: flex; }
+  @keyframes wiz-in {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .wiz-q {
+    font-size: 22px;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    color: var(--fg);
+    margin: 0 0 6px;
+    text-wrap: balance;
+  }
+  .wiz-hint {
+    font-size: 13px;
+    color: var(--fg-muted);
+    margin: 0 0 24px;
+    letter-spacing: 0.005em;
+  }
+
+  /* Tuile grid for instruments / setups / emotions */
+  .wiz-tiles {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+    gap: 8px;
+    margin-bottom: 18px;
+  }
+  .wiz-tile {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    padding: 14px 10px;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color 120ms, background 120ms, transform 100ms;
+    min-height: 60px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 2px;
+  }
+  .wiz-tile:hover { border-color: var(--border-strong); background: var(--surface-raised); }
+  .wiz-tile:active { transform: scale(0.98); }
+  .wiz-tile.selected {
+    border-color: var(--accent);
+    background: var(--accent-dim);
+    box-shadow: inset 0 0 0 1px var(--accent-dim);
+  }
+  .wiz-tile .tile-main {
+    font-family: var(--font-mono);
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--fg);
+    letter-spacing: -0.005em;
+  }
+  .wiz-tile.selected .tile-main { color: var(--accent); }
+  .wiz-tile .tile-sub {
+    font-size: 10px;
+    color: var(--fg-muted);
+    font-family: var(--font-mono);
+  }
+
+  .wiz-custom-input {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    padding: 11px 13px;
+    font-family: var(--font-mono);
+    font-size: 14px;
+    font-weight: 500;
+    width: 100%;
+    text-transform: uppercase;
+    transition: border-color 120ms;
+    margin-bottom: 18px;
+  }
+  .wiz-custom-input:focus { border-color: var(--accent); outline: none; }
+
+  /* Side tiles (LONG / SHORT) */
+  .wiz-side-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 24px;
+  }
+  .wiz-side-tile {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 28px 20px;
+    cursor: pointer;
+    text-align: center;
+    transition: border-color 140ms, background 140ms, transform 100ms;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    align-items: center;
+  }
+  .wiz-side-tile:hover { background: var(--surface-raised); }
+  .wiz-side-tile:active { transform: scale(0.98); }
+  .wiz-side-tile .side-label {
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+  }
+  .wiz-side-tile .side-arrow {
+    font-size: 24px;
+    line-height: 1;
+    font-family: var(--font-mono);
+    font-weight: 300;
+  }
+  .wiz-side-tile.long .side-label { color: var(--fg-muted); }
+  .wiz-side-tile.long .side-arrow { color: var(--fg-muted); }
+  .wiz-side-tile.long.selected {
+    border-color: var(--accent);
+    background: var(--accent-dim);
+  }
+  .wiz-side-tile.long.selected .side-label,
+  .wiz-side-tile.long.selected .side-arrow { color: var(--accent); }
+  .wiz-side-tile.short .side-label { color: var(--fg-muted); }
+  .wiz-side-tile.short .side-arrow { color: var(--fg-muted); }
+  .wiz-side-tile.short.selected {
+    border-color: var(--loss);
+    background: var(--loss-dim);
+  }
+  .wiz-side-tile.short.selected .side-label,
+  .wiz-side-tile.short.selected .side-arrow { color: var(--loss); }
+
+  /* Size quick picks */
+  .wiz-size {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 10px;
+    flex-wrap: wrap;
+  }
+  .wiz-size button {
+    padding: 10px 16px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    font-family: var(--font-mono);
+    font-size: 13px;
+    color: var(--fg-muted);
+    min-width: 48px;
+    transition: all 100ms;
+  }
+  .wiz-size button:hover { background: var(--surface-raised); color: var(--fg); }
+  .wiz-size button.selected {
+    background: var(--accent-dim);
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+  .wiz-size-custom {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    padding: 10px 13px;
+    font-family: var(--font-mono);
+    font-size: 13px;
+    width: 100px;
+    text-align: center;
+  }
+
+  /* Price inputs (step 3) */
+  .wiz-prices {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 18px;
+  }
+  .wiz-price-row {
+    display: grid;
+    grid-template-columns: 90px 1fr auto;
+    align-items: center;
+    gap: 12px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    padding: 14px 16px;
+    transition: border-color 120ms;
+  }
+  .wiz-price-row:focus-within { border-color: var(--accent); }
+  .wiz-price-row label {
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--fg-muted);
+  }
+  .wiz-price-row input {
+    font-family: var(--font-mono);
+    font-size: 20px;
+    font-weight: 600;
+    text-align: right;
+    background: transparent;
+    border: 0;
+    outline: 0;
+    width: 100%;
+    letter-spacing: -0.01em;
+    font-variant-numeric: tabular-nums;
+    color: var(--fg);
+  }
+  .wiz-price-row input::placeholder { color: var(--fg-dim); font-weight: 500; }
+  .wiz-price-row.open input::placeholder { opacity: 0.5; }
+  .wiz-price-row .pill-open {
+    font-size: 9px;
+    color: var(--fg-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    padding: 3px 7px;
+    background: var(--surface-raised);
+    border-radius: 3px;
+    cursor: pointer;
+    transition: color 100ms, background 100ms;
+  }
+  .wiz-price-row .pill-open.active {
+    background: var(--warn);
+    color: #140a00;
+    font-weight: 600;
+  }
+
+  .wiz-live {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1px;
+    background: var(--border);
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    overflow: hidden;
+    margin-bottom: 18px;
+  }
+  .wiz-live > div {
+    background: var(--surface);
+    padding: 12px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    text-align: center;
+  }
+  .wiz-live label {
+    font-size: 9px;
+    color: var(--fg-muted);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+  .wiz-live span {
+    font-family: var(--font-mono);
+    font-size: 17px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+  }
+  .wiz-live span.pos { color: var(--win); }
+  .wiz-live span.neg { color: var(--loss); }
+
+  /* Rating stars */
+  .wiz-rating {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 20px;
+    justify-content: center;
+  }
+  .wiz-rating button {
+    width: 48px;
+    height: 48px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--surface);
+    font-family: var(--font-mono);
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--fg-muted);
+    transition: all 100ms;
+  }
+  .wiz-rating button:hover { background: var(--surface-raised); color: var(--fg); }
+  .wiz-rating button.selected {
+    background: var(--accent-dim);
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  .wiz-sub-label {
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--fg-muted);
+    margin-bottom: 10px;
+    margin-top: 8px;
+  }
+
+  /* Dropzone for wizard */
+  .wiz-drop {
+    border: 1px dashed var(--border-strong);
+    border-radius: 8px;
+    padding: 32px 20px;
+    text-align: center;
+    transition: border-color 120ms, background 120ms;
+    cursor: pointer;
+    background: var(--surface);
+    margin-bottom: 14px;
+  }
+  .wiz-drop:hover { border-color: var(--accent); background: var(--surface-raised); }
+  .wiz-drop.drag { border-color: var(--accent); background: var(--accent-dim); }
+  .wiz-drop-title { font-size: 14px; color: var(--fg); font-weight: 500; margin-bottom: 6px; }
+  .wiz-drop-hint { font-size: 11px; color: var(--fg-muted); letter-spacing: 0.02em; }
+  .wiz-drop-hint kbd {
+    display: inline-block;
+    background: var(--surface-raised);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 1px 5px;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    margin: 0 2px;
+  }
+  .wiz-note {
+    width: 100%;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    padding: 12px 14px;
+    font-family: var(--font-sans);
+    font-size: 13px;
+    color: var(--fg);
+    resize: vertical;
+    min-height: 80px;
+    margin-bottom: 14px;
+    transition: border-color 120ms;
+  }
+  .wiz-note:focus { border-color: var(--accent); outline: none; }
+  .wiz-link {
+    width: 100%;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    padding: 10px 14px;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--fg);
+    transition: border-color 120ms;
+  }
+  .wiz-link:focus { border-color: var(--accent); outline: none; }
+
+  /* Review */
+  .wiz-review {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+    margin-bottom: 18px;
+  }
+  .wiz-review-row {
+    display: grid;
+    grid-template-columns: 100px 1fr;
+    gap: 14px;
+    padding: 10px 16px;
+    border-top: 1px solid var(--border);
+    font-size: 12px;
+  }
+  .wiz-review-row:first-child { border-top: 0; }
+  .wiz-review-row label {
+    color: var(--fg-muted);
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+  .wiz-review-row span {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    font-size: 13px;
+    color: var(--fg);
+  }
+  .wiz-review-row span.muted { color: var(--fg-muted); }
+
+  .wiz-review-shots {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+    gap: 6px;
+    padding: 10px 16px 14px;
+    border-top: 1px solid var(--border);
+  }
+  .wiz-review-shots img {
+    width: 100%;
+    aspect-ratio: 4/3;
+    object-fit: cover;
+    border-radius: 4px;
+    border: 1px solid var(--border);
+  }
+
+  .wiz-result {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1px;
+    background: var(--border);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+    margin-bottom: 18px;
+  }
+  .wiz-result > div {
+    background: var(--surface);
+    padding: 16px 14px;
+    text-align: center;
+  }
+  .wiz-result label {
+    font-size: 10px;
+    color: var(--fg-muted);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    display: block;
+    margin-bottom: 6px;
+  }
+  .wiz-result span {
+    font-family: var(--font-mono);
+    font-size: 20px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+  }
+  .wiz-result span.pos { color: var(--win); }
+  .wiz-result span.neg { color: var(--loss); }
+
+  /* Foot bar */
+  .wiz-foot {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: auto;
+    padding-top: 22px;
+  }
+  .wiz-foot .back {
+    color: var(--fg-muted);
+    font-size: 12px;
+    padding: 10px 12px;
+    border-radius: 5px;
+    transition: color 100ms, background 100ms;
+  }
+  .wiz-foot .back:hover { color: var(--fg); background: var(--surface-raised); }
+  .wiz-foot .back:disabled { opacity: 0.3; cursor: default; }
+  .wiz-foot .skip {
+    color: var(--fg-muted);
+    font-size: 12px;
+    padding: 10px 12px;
+    border-radius: 5px;
+    transition: color 100ms;
+  }
+  .wiz-foot .skip:hover { color: var(--fg); }
+  .wiz-foot .spacer { flex: 1; }
+  .wiz-foot .next {
+    padding: 11px 22px;
+    background: var(--accent);
+    color: #ffffff;
+    font-weight: 600;
+    font-size: 13px;
+    border-radius: 5px;
+    transition: filter 100ms, opacity 100ms;
+    letter-spacing: 0.005em;
+  }
+  .wiz-foot .next:hover { filter: brightness(1.08); }
+  .wiz-foot .next:disabled { opacity: 0.4; cursor: default; }
+  .wiz-foot .next.save { background: var(--win); color: #ffffff; }
+
+  .wiz-detailed-link {
+    text-align: center;
+    margin-top: 18px;
+  }
+  .wiz-detailed-link button {
+    color: var(--fg-dim);
+    font-size: 11px;
+    letter-spacing: 0.02em;
+    padding: 6px 10px;
+    border-radius: 4px;
+    transition: color 100ms;
+  }
+  .wiz-detailed-link button:hover { color: var(--fg-muted); text-decoration: underline; }
+
+  @media (max-width: 560px) {
+    .wiz-q { font-size: 19px; }
+    .wiz-side-tile { padding: 22px 16px; }
+    .wiz-side-tile .side-label { font-size: 15px; }
+    .wiz-price-row input { font-size: 17px; }
+    .wiz-live span { font-size: 15px; }
+    .wiz-result span { font-size: 17px; }
+    .wiz-top { margin-bottom: 24px; }
+  }
+
+  /* ---------- Lightbox ---------- */
+  .lightbox {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.92);
+    z-index: 400;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    cursor: zoom-out;
+  }
+  .lightbox img {
+    max-width: 100%;
+    max-height: 100%;
+    border-radius: 6px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+  }
+
+  /* ---------- Empty ---------- */
+  .empty {
+    padding: 60px 20px;
+    text-align: center;
+    color: var(--fg-muted);
+    font-size: 13px;
+  }
+  .empty h3 {
+    color: var(--fg);
+    font-size: 15px;
+    font-weight: 600;
+    margin: 0 0 6px;
+    letter-spacing: -0.01em;
+  }
+  .empty p { margin: 0 0 18px; }
+  .empty .cta {
+    display: inline-flex;
+    gap: 8px;
+    padding: 10px 16px;
+    background: var(--accent);
+    color: #ffffff;
+    border-radius: 5px;
+    font-size: 13px;
+    font-weight: 600;
+  }
+
+  /* ---------- Toast ---------- */
+  .toast {
+    position: fixed;
+    bottom: calc(24px + env(safe-area-inset-bottom, 0px));
+    left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    background: var(--surface-raised);
+    border: 1px solid var(--border-strong);
+    padding: 10px 16px;
+    border-radius: 6px;
+    font-size: 12px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 180ms, transform 180ms;
+    z-index: 300;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  /* ---------- Workflow strip ---------- */
+  .workflow {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 11px;
+    color: var(--fg-muted);
+    padding: 10px 14px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    margin-bottom: 24px;
+    letter-spacing: 0.02em;
+    flex-wrap: wrap;
+  }
+  .workflow .step { display: flex; align-items: center; gap: 6px; }
+  .workflow .sep { color: var(--fg-dim); font-family: var(--font-mono); }
+  .workflow .dot { width: 5px; height: 5px; border-radius: 50%; background: var(--fg-dim); }
+  .workflow .step.active .dot { background: var(--accent); box-shadow: 0 0 8px var(--accent-dim); }
+  .workflow .step.active { color: var(--fg); }
+
+  /* ---------- Detail view ---------- */
+  .detail-head {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 16px;
+    align-items: flex-start;
+    padding: 20px 22px;
+    border-bottom: 1px solid var(--border);
+  }
+  .detail-stat {
+    text-align: right;
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    font-size: 20px;
+    font-weight: 600;
+  }
+  .detail-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 1px;
+    background: var(--border);
+    border-top: 1px solid var(--border);
+  }
+  .detail-grid > div {
+    background: var(--surface);
+    padding: 12px 16px;
+  }
+  .detail-grid label {
+    font-size: 9px;
+    color: var(--fg-muted);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    display: block;
+    margin-bottom: 3px;
+  }
+  .detail-grid span {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    font-size: 13px;
+    font-weight: 500;
+  }
+
+  /* ---------- Responsive ---------- */
+  @media (max-width: 900px) {
+    .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+    .stats-grid { grid-template-columns: 1fr; }
+    .settings-grid { grid-template-columns: 1fr; }
+    .live-preview { grid-template-columns: repeat(3, 1fr); }
+  }
+  @media (max-width: 560px) {
+    .form-grid { grid-template-columns: 1fr; }
+    .header-meta-label { display: none; }
+    .recent-row { grid-template-columns: 44px 1fr auto; gap: 10px; padding: 10px 16px; }
+    .recent-row .r-mult, .recent-row .recent-date, .recent-row .side-pill { display: none; }
+    .workflow { font-size: 10px; }
+    .btn-add span.label { display: none; }
+    .kpi-value { font-size: 19px; }
+  }
+</style>
+
+<div class="app">
+  <header class="header">
+    <div class="header-row">
+      <div class="brand">
+        <span class="brand-mark"></span>
+        <span>Lvrk data</span>
+      </div>
+      <div class="header-spacer"></div>
+      <div class="header-meta">
+        <span class="header-meta-label">Cumulative P&L</span>
+        <span class="header-meta-value" id="header-pnl">$0</span>
+      </div>
+      <button class="btn-add" id="btn-new-trade">
+        <span class="plus">+</span><span class="label">New trade</span>
+      </button>
+    </div>
+    <nav class="tabs" id="tabs">
+      <button class="tab active" data-view="dash">Dashboard</button>
+      <button class="tab" data-view="trades">Trades</button>
+      <button class="tab" data-view="stats">Stats</button>
+      <button class="tab" data-view="settings">Settings</button>
+    </nav>
+  </header>
+
+  <main class="main">
+    <div class="inner" id="inner"></div>
+  </main>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  // ====================================================================
+  //  IndexedDB wrapper
+  //  Stores trades (incl. compressed screenshot data URLs) and settings.
+  // ====================================================================
+  const DB_NAME = 'trade-log';
+  const DB_VERSION = 1;
+  let dbPromise = null;
+
+  function openDB() {
+    if (dbPromise) return dbPromise;
+    dbPromise = new Promise((resolve, reject) => {
+      try {
+        const req = indexedDB.open(DB_NAME, DB_VERSION);
+        req.onupgradeneeded = (e) => {
+          const db = e.target.result;
+          if (!db.objectStoreNames.contains('trades')) db.createObjectStore('trades', { keyPath: 'id' });
+          if (!db.objectStoreNames.contains('settings')) db.createObjectStore('settings', { keyPath: 'key' });
+        };
+        req.onsuccess = (e) => resolve(e.target.result);
+        req.onerror = (e) => reject(e.target.error);
+      } catch (err) { reject(err); }
+    });
+    return dbPromise;
+  }
+  async function dbGetAll(store) {
+    const db = await openDB();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(store, 'readonly');
+      const req = tx.objectStore(store).getAll();
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => reject(req.error);
+    });
+  }
+  async function dbGet(store, key) {
+    const db = await openDB();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(store, 'readonly');
+      const req = tx.objectStore(store).get(key);
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => reject(req.error);
+    });
+  }
+  async function dbPut(store, value) {
+    const db = await openDB();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(store, 'readwrite');
+      tx.objectStore(store).put(value);
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+    });
+  }
+  async function dbDel(store, key) {
+    const db = await openDB();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(store, 'readwrite');
+      tx.objectStore(store).delete(key);
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+    });
+  }
+  async function dbClear(store) {
+    const db = await openDB();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(store, 'readwrite');
+      tx.objectStore(store).clear();
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+    });
+  }
+
+  // ====================================================================
+  //  Defaults
+  // ====================================================================
+  const DEFAULT_INSTRUMENTS = {
+    'MNQ': 2, 'NQ': 20, 'MES': 5, 'ES': 50, 'MYM': 0.5, 'YM': 5,
+    'M2K': 5, 'RTY': 50, 'MGC': 10, 'GC': 100, 'MCL': 100, 'CL': 1000,
+  };
+  // No defaults — user builds their own lists in Settings.
+
+  // ====================================================================
+  //  State
+  // ====================================================================
+  const DEFAULT_OBSIDIAN = {
+    serverUrl: 'https://127.0.0.1:27124',
+    apiKey: '',
+    notesFolder: 'Trades',
+    attachmentsFolder: 'Trades/attachments',
+  };
+
+  let state = {
+    trades: [],
+    instruments: { ...DEFAULT_INSTRUMENTS },
+    setups: [],
+    emotions: [],
+    obsidian: { ...DEFAULT_OBSIDIAN },
+  };
+  let currentView = 'dash';
+  let editingTradeId = null;
+  let filterState = { instrument: '', setup: '', side: '' };
+
+  async function loadState() {
+    try {
+      const [trades, instrSetting, setupsSetting, emotionsSetting, obsidianSetting] = await Promise.all([
+        dbGetAll('trades'),
+        dbGet('settings', 'instruments'),
+        dbGet('settings', 'setups'),
+        dbGet('settings', 'emotions'),
+        dbGet('settings', 'obsidian'),
+      ]);
+      state.trades = trades || [];
+      state.instruments = instrSetting?.value || { ...DEFAULT_INSTRUMENTS };
+      state.setups = Array.isArray(setupsSetting?.value) ? setupsSetting.value : [];
+      state.emotions = Array.isArray(emotionsSetting?.value) ? emotionsSetting.value : [];
+      state.obsidian = { ...DEFAULT_OBSIDIAN, ...(obsidianSetting?.value || {}) };
+    } catch (e) {
+      console.warn('DB load failed, running in-memory only', e);
+    }
+  }
+  async function saveTrade(trade) {
+    try { await dbPut('trades', trade); } catch (e) { console.warn(e); }
+  }
+  async function deleteTradeFromDB(id) {
+    try { await dbDel('trades', id); } catch (e) { console.warn(e); }
+  }
+  async function saveInstruments() {
+    try { await dbPut('settings', { key: 'instruments', value: state.instruments }); } catch (e) {}
+  }
+  async function saveSetups() {
+    try { await dbPut('settings', { key: 'setups', value: state.setups }); } catch (e) {}
+  }
+  async function saveEmotions() {
+    try { await dbPut('settings', { key: 'emotions', value: state.emotions }); } catch (e) {}
+  }
+  async function saveObsidianSettings() {
+    try { await dbPut('settings', { key: 'obsidian', value: state.obsidian }); } catch (e) {}
+  }
+
+  // ====================================================================
+  //  Obsidian integration (Local REST API plugin)
+  //  Pushes a trade as a markdown note + screenshots directly into the
+  //  user's vault via the plugin's REST endpoints. Runs entirely from
+  //  the browser, so it only works while Obsidian is open on the same
+  //  machine and the plugin's CORS/certificate are accepted.
+  // ====================================================================
+  function obsidianConfigured() {
+    return !!(state.obsidian.serverUrl && state.obsidian.apiKey);
+  }
+  function encodeVaultPath(path) {
+    return path.split('/').filter(Boolean).map(encodeURIComponent).join('/');
+  }
+  function sanitizeFilename(s) {
+    return (s || '').replace(/[\\/:*?"<>|]/g, '-').trim();
+  }
+  function dataUrlToBlob(dataUrl) {
+    const [header, base64] = dataUrl.split(',');
+    const mimeMatch = header.match(/data:(.*?);base64/);
+    const mime = mimeMatch ? mimeMatch[1] : 'image/jpeg';
+    const binary = atob(base64);
+    const arr = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) arr[i] = binary.charCodeAt(i);
+    return new Blob([arr], { type: mime });
+  }
+
+  function buildObsidianMarkdown(trade, attachmentPaths) {
+    const pnl = trade.exit != null ? tradePnL(trade) : null;
+    const r = trade.exit != null ? tradeR(trade) : null;
+    const risk = tradeRisk(trade);
+    const baseName = `${trade.date} ${sanitizeFilename(trade.instrument)} ${trade.side} ${trade.id.slice(0, 6)}`;
+    const filename = `${baseName}.md`;
+
+    const tagList = ['trade'];
+    if (trade.setup) tagList.push(`setup/${sanitizeFilename(trade.setup).replace(/\s+/g, '-')}`);
+    if (trade.emotion) tagList.push(`emotion/${sanitizeFilename(trade.emotion).replace(/\s+/g, '-')}`);
+
+    const fm = [
+      '---',
+      `date: ${trade.date}`,
+      `time: "${trade.time || ''}"`,
+      `instrument: "[[${trade.instrument}]]"`,
+      `side: ${trade.side}`,
+      `entry: ${trade.entry}`,
+      `stop: ${trade.stop}`,
+      `exit: ${trade.exit ?? ''}`,
+      `size: ${trade.size}`,
+      `dollar_per_point: ${trade.dollarPerPoint}`,
+      `risk: ${risk.toFixed(2)}`,
+      `pnl: ${pnl != null ? pnl.toFixed(2) : ''}`,
+      `r_multiple: ${r != null && isFinite(r) ? r.toFixed(2) : ''}`,
+      `rating: ${trade.rating ?? ''}`,
+      trade.setup ? `setup: "[[${trade.setup}]]"` : 'setup:',
+      trade.emotion ? `emotion: "[[${trade.emotion}]]"` : 'emotion:',
+      `tags: [${tagList.join(', ')}]`,
+      '---',
+    ].join('\n');
+
+    const headerLine = `# [[${trade.instrument}]] · ${trade.side} · ${pnl != null && r != null && isFinite(r) ? fmtR(r) : 'Open'}`;
+    const statsLine = `**Entry** ${fmtPrice(trade.entry)} → **Exit** ${trade.exit != null ? fmtPrice(trade.exit) : 'open'} · **Stop** ${fmtPrice(trade.stop)} · **Risk** ${fmt$(risk)} · **P&L** ${pnl != null ? fmt$(pnl, { alwaysSign: true }) : '—'}`;
+    const contextBits = [
+      trade.setup ? `Setup: [[${trade.setup}]]` : '',
+      trade.rating ? `Rating: ${trade.rating}/5` : '',
+      trade.emotion ? `Emotion: [[${trade.emotion}]]` : '',
+    ].filter(Boolean).join(' · ');
+    const images = attachmentPaths.map(p => `![[${p}]]`).join('\n');
+    const chartLinkLine = trade.chartLink ? `[Chart](${trade.chartLink})` : '';
+    const noteBlock = trade.note ? `> ${trade.note.replace(/\n/g, '\n> ')}` : '';
+
+    const body = [headerLine, '', statsLine, contextBits, '', images, chartLinkLine, noteBlock]
+      .filter(line => line !== '' || true) // keep structural blank lines
+      .join('\n')
+      .replace(/\n{3,}/g, '\n\n');
+
+    return { filename, content: `${fm}\n\n${body.trim()}\n` };
+  }
+
+  async function obsidianRequest(path, options = {}) {
+    const cfg = state.obsidian;
+    const url = `${cfg.serverUrl.replace(/\/$/, '')}/${path}`;
+    return fetch(url, {
+      ...options,
+      headers: {
+        'Authorization': `Bearer ${cfg.apiKey}`,
+        ...(options.headers || {}),
+      },
+    });
+  }
+
+  async function testObsidianConnection() {
+    if (!obsidianConfigured()) { toast('Fill in server URL and API key first'); return; }
+    try {
+      const res = await obsidianRequest('');
+      if (res.ok) {
+        toast('Connected to Obsidian');
+        return true;
+      }
+      toast(`Obsidian responded with ${res.status} — check the API key`);
+      return false;
+    } catch (err) {
+      console.error(err);
+      toast('Could not reach Obsidian — see Settings for troubleshooting');
+      return false;
+    }
+  }
+
+  async function pushTradeToObsidian(trade) {
+    if (!obsidianConfigured()) { toast('Configure Obsidian in Settings first'); return false; }
+    const cfg = state.obsidian;
+    const attachFolder = cfg.attachmentsFolder || 'Trades/attachments';
+    const notesFolder = cfg.notesFolder || 'Trades';
+    const shots = trade.screenshots || [];
+    try {
+      const attachmentPaths = [];
+      for (let i = 0; i < shots.length; i++) {
+        const blob = dataUrlToBlob(shots[i]);
+        const ext = blob.type.includes('png') ? 'png' : 'jpg';
+        const path = `${attachFolder}/${trade.id}-${i + 1}.${ext}`;
+        const res = await obsidianRequest(`vault/${encodeVaultPath(path)}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': blob.type || 'image/jpeg' },
+          body: blob,
+        });
+        if (!res.ok) throw new Error(`Image upload failed (HTTP ${res.status})`);
+        attachmentPaths.push(path);
+      }
+      const { filename, content } = buildObsidianMarkdown(trade, attachmentPaths);
+      const notePath = `${notesFolder}/${filename}`;
+      const res2 = await obsidianRequest(`vault/${encodeVaultPath(notePath)}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'text/markdown' },
+        body: content,
+      });
+      if (!res2.ok) throw new Error(`Note creation failed (HTTP ${res2.status})`);
+
+      trade.obsidianSynced = true;
+      trade.obsidianPath = notePath;
+      await saveTrade(trade);
+      toast('Pushed to Obsidian');
+      return true;
+    } catch (err) {
+      console.error(err);
+      toast('Obsidian push failed — likely CORS or an untrusted certificate. See Settings.');
+      return false;
+    }
+  }
+
+  async function copyTradeAsObsidianMarkdown(trade) {
+    const shots = trade.screenshots || [];
+    const attachFolder = state.obsidian.attachmentsFolder || 'Trades/attachments';
+    const attachmentPaths = shots.map((s, i) => {
+      const blob = dataUrlToBlob(s);
+      const ext = blob.type.includes('png') ? 'png' : 'jpg';
+      return `${attachFolder}/${trade.id}-${i + 1}.${ext}`;
+    });
+    const { content } = buildObsidianMarkdown(trade, attachmentPaths);
+    try {
+      await navigator.clipboard.writeText(content);
+      toast(shots.length ? 'Markdown copied — save the screenshots separately with matching names' : 'Markdown copied to clipboard');
+    } catch {
+      toast('Copy failed — try the Push button instead');
+    }
+  }
+
+  // ====================================================================
+  //  Notion integration
+  //  Calls this site's own Netlify Function (same origin, so no CORS
+  //  issue), which holds the Notion secret server-side and talks to
+  //  the Notion API on the trade's behalf.
+  // ====================================================================
+  async function pushTradeToNotion(trade) {
+    const risk = tradeRisk(trade);
+    const pnl = trade.exit != null ? tradePnL(trade) : null;
+    const r = trade.exit != null ? tradeR(trade) : null;
+    const payload = {
+      trade: {
+        id: trade.id,
+        date: trade.date,
+        time: trade.time,
+        instrument: trade.instrument,
+        side: trade.side,
+        entry: trade.entry,
+        stop: trade.stop,
+        exit: trade.exit,
+        size: trade.size,
+        dollarPerPoint: trade.dollarPerPoint,
+        risk,
+        pnl,
+        r: r != null && isFinite(r) ? r : null,
+        setup: trade.setup,
+        emotion: trade.emotion,
+        rating: trade.rating,
+        note: trade.note,
+        chartLink: trade.chartLink,
+      },
+      screenshots: trade.screenshots || [],
+    };
+    try {
+      const res = await fetch('/.netlify/functions/push-to-notion', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.ok) {
+        console.error(data);
+        toast(`Notion push failed: ${data.error || 'unknown error'}`);
+        return false;
+      }
+      trade.notionSynced = true;
+      trade.notionUrl = data.url;
+      await saveTrade(trade);
+      toast('Pushed to Notion');
+      return true;
+    } catch (err) {
+      console.error(err);
+      toast('Could not reach the Notion function — check it is deployed');
+      return false;
+    }
+  }
+
+  // ====================================================================
+  //  Calc
+  // ====================================================================
+  function tradeRisk(t) {
+    if (!t.entry || !t.stop || !t.size || !t.dollarPerPoint) return 0;
+    return Math.abs(t.entry - t.stop) * t.size * t.dollarPerPoint;
+  }
+  function tradePnL(t) {
+    if (!t.entry || !t.exit || !t.size || !t.dollarPerPoint) return 0;
+    const dir = t.side === 'LONG' ? 1 : -1;
+    return (t.exit - t.entry) * t.size * t.dollarPerPoint * dir;
+  }
+  function tradeR(t) {
+    const risk = tradeRisk(t);
+    if (!risk) return 0;
+    return tradePnL(t) / risk;
+  }
+  function sortedTrades(trades = state.trades) {
+    return [...trades].sort((a, b) => {
+      const dateA = (a.date || '') + (a.time || '');
+      const dateB = (b.date || '') + (b.time || '');
+      return dateA.localeCompare(dateB);
+    });
+  }
+  function resolvedTrades(trades = state.trades) {
+    return trades.filter(t => t.exit != null && t.entry != null && t.stop != null && t.size && t.dollarPerPoint);
+  }
+
+  // ====================================================================
+  //  Formatting
+  // ====================================================================
+  function fmt$(n, opts = {}) {
+    if (n == null || isNaN(n)) return '—';
+    const abs = Math.abs(n);
+    const sign = n < 0 ? '-' : (opts.alwaysSign && n > 0 ? '+' : '');
+    return sign + '$' + abs.toLocaleString('en-US', { maximumFractionDigits: 0 });
+  }
+  function fmtPct(n, digits = 1) {
+    if (n == null || isNaN(n)) return '—';
+    return (n * 100).toFixed(digits) + '%';
+  }
+  function fmtR(n) {
+    if (n == null || isNaN(n) || !isFinite(n)) return '—';
+    const sign = n > 0 ? '+' : '';
+    return sign + n.toFixed(2) + 'R';
+  }
+  function fmtPrice(n) {
+    if (n == null || isNaN(n)) return '—';
+    return n.toLocaleString('en-US', { maximumFractionDigits: 2 });
+  }
+
+  function toast(msg) {
+    const el = document.getElementById('toast');
+    el.textContent = msg;
+    el.classList.add('show');
+    clearTimeout(toast._t);
+    toast._t = setTimeout(() => el.classList.remove('show'), 1800);
+  }
+
+  // ====================================================================
+  //  Image compression
+  //  Resize to max 1800px side, encode JPEG q=0.82 → ~80-200KB typically.
+  // ====================================================================
+  async function compressImage(fileOrBlob, maxSide = 1800, quality = 0.82) {
+    const dataUrl = await new Promise((resolve, reject) => {
+      const r = new FileReader();
+      r.onload = () => resolve(r.result);
+      r.onerror = reject;
+      r.readAsDataURL(fileOrBlob);
+    });
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.onload = () => {
+        let { width, height } = img;
+        if (width > maxSide || height > maxSide) {
+          const ratio = Math.min(maxSide / width, maxSide / height);
+          width = Math.round(width * ratio);
+          height = Math.round(height * ratio);
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = width; canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = '#141414';
+        ctx.fillRect(0, 0, width, height);
+        ctx.drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL('image/jpeg', quality));
+      };
+      img.onerror = () => resolve(dataUrl); // fallback: keep original
+      img.src = dataUrl;
+    });
+  }
+  async function filesToDataUrls(files) {
+    const results = [];
+    for (const f of files) {
+      if (!f.type || !f.type.startsWith('image/')) continue;
+      try { results.push(await compressImage(f)); }
+      catch (e) { console.warn('compress failed', e); }
+    }
+    return results;
+  }
+
+  // ====================================================================
+  //  Rendering
+  // ====================================================================
+  const inner = document.getElementById('inner');
+
+  function updateHeader() {
+    const resolved = resolvedTrades();
+    const total = resolved.reduce((a, t) => a + tradePnL(t), 0);
+    const el = document.getElementById('header-pnl');
+    el.textContent = fmt$(total, { alwaysSign: true });
+    el.style.color = total > 0 ? 'var(--win)' : (total < 0 ? 'var(--loss)' : 'var(--fg)');
+  }
+
+  function renderDashboard() {
+    updateHeader();
+    const resolved = resolvedTrades();
+    const wins = resolved.filter(t => tradePnL(t) > 0);
+    const losses = resolved.filter(t => tradePnL(t) < 0);
+    const totalPnl = resolved.reduce((a, t) => a + tradePnL(t), 0);
+    const totalR = resolved.reduce((a, t) => a + tradeR(t), 0);
+    const avgR = resolved.length ? totalR / resolved.length : 0;
+    const pf = losses.length ? wins.reduce((a, t) => a + tradePnL(t), 0) / Math.abs(losses.reduce((a, t) => a + tradePnL(t), 0)) : (wins.length ? Infinity : 0);
+    const winRate = resolved.length ? wins.length / resolved.length : 0;
+    const avgWin = wins.length ? wins.reduce((a, t) => a + tradePnL(t), 0) / wins.length : 0;
+    const avgLoss = losses.length ? losses.reduce((a, t) => a + tradePnL(t), 0) / losses.length : 0;
+    const bestTrade = resolved.length ? Math.max(...resolved.map(tradePnL)) : 0;
+    const worstTrade = resolved.length ? Math.min(...resolved.map(tradePnL)) : 0;
+
+    const recent = sortedTrades().slice(-6).reverse();
+
+    inner.innerHTML = `
+      <div class="section-label">Key stats</div>
+      <div class="kpi-grid">
+        <div class="kpi">
+          <span class="kpi-label">Win rate</span>
+          <span class="kpi-value">${resolved.length ? fmtPct(winRate, 0) : '—'}</span>
+          <span class="kpi-sub">${wins.length}W · ${losses.length}L</span>
+        </div>
+        <div class="kpi">
+          <span class="kpi-label">Profit factor</span>
+          <span class="kpi-value ${pf > 1 ? 'pos' : (pf < 1 && pf > 0 ? 'neg' : '')}">${!resolved.length ? '—' : (pf === Infinity ? '∞' : pf.toFixed(2))}</span>
+          <span class="kpi-sub">Gross wins / losses</span>
+        </div>
+        <div class="kpi">
+          <span class="kpi-label">Expectancy</span>
+          <span class="kpi-value ${avgR > 0 ? 'pos' : (avgR < 0 ? 'neg' : '')}">${resolved.length ? fmtR(avgR) : '—'}</span>
+          <span class="kpi-sub">Avg R per trade</span>
+        </div>
+        <div class="kpi">
+          <span class="kpi-label">Trades</span>
+          <span class="kpi-value">${resolved.length}</span>
+          <span class="kpi-sub">${state.trades.length - resolved.length} open</span>
+        </div>
+      </div>
+
+      <div class="kpi-grid">
+        <div class="kpi">
+          <span class="kpi-label">Cumulative P&L</span>
+          <span class="kpi-value ${totalPnl > 0 ? 'pos' : (totalPnl < 0 ? 'neg' : '')}">${resolved.length ? fmt$(totalPnl, { alwaysSign: true }) : '—'}</span>
+          <span class="kpi-sub">Total realized</span>
+        </div>
+        <div class="kpi">
+          <span class="kpi-label">Cumulative R</span>
+          <span class="kpi-value ${totalR > 0 ? 'pos' : (totalR < 0 ? 'neg' : '')}">${resolved.length ? fmtR(totalR) : '—'}</span>
+          <span class="kpi-sub">Sum of R</span>
+        </div>
+        <div class="kpi">
+          <span class="kpi-label">Avg Win / Loss</span>
+          <span class="kpi-value">${wins.length ? fmt$(avgWin) : '—'}<span style="color:var(--fg-dim);font-size:14px;"> / </span><span class="neg">${losses.length ? fmt$(avgLoss) : '—'}</span></span>
+          <span class="kpi-sub">Average per trade</span>
+        </div>
+        <div class="kpi">
+          <span class="kpi-label">Best / Worst</span>
+          <span class="kpi-value"><span class="pos">${resolved.length ? fmt$(bestTrade) : '—'}</span><span style="color:var(--fg-dim);font-size:14px;"> / </span><span class="neg">${resolved.length ? fmt$(worstTrade) : '—'}</span></span>
+          <span class="kpi-sub">Extremes</span>
+        </div>
+      </div>
+
+      <div class="section-label">Recent trades</div>
+      <div class="recent">
+        ${recent.length === 0 ? `
+          <div class="empty">
+            <h3>No trades yet</h3>
+            <p>Log your first trade to get started.</p>
+            <button class="cta" onclick="openWizard()"><span>+</span> First trade</button>
+          </div>
+        ` : `
+          <div class="recent-row head">
+            <span>Pic</span>
+            <span>Date</span>
+            <span>Side</span>
+            <span>Instrument · setup</span>
+            <span>R</span>
+            <span style="text-align:right">P&L</span>
+          </div>
+          ${recent.map(t => {
+            const pnl = tradePnL(t);
+            const r = tradeR(t);
+            const shots = t.screenshots || [];
+            return `
+            <div class="recent-row" data-open="${t.id}">
+              <span>${shots.length > 0 ? `<img class="shot-thumb" src="${shots[0]}" alt="">` : `<span class="shot-count">—</span>`}</span>
+              <span class="recent-date">${t.date}${t.time ? ' <span style="color:var(--fg-dim)">·</span> ' + t.time : ''}</span>
+              <span class="side-pill ${t.side === 'LONG' ? 'side-long' : 'side-short'}">${t.side}</span>
+              <span><span style="color:var(--fg)">${t.instrument}</span> <span style="color:var(--fg-muted); font-family: var(--font-sans); font-size: 11px;">${t.setup || ''}</span></span>
+              <span class="r-mult">${t.exit != null ? fmtR(r) : '—'}</span>
+              <span class="${pnl > 0 ? 'pnl-pos' : (pnl < 0 ? 'pnl-neg' : '')}" style="text-align:right">${t.exit != null ? fmt$(pnl, { alwaysSign: true }) : '—'}</span>
+            </div>
+            `;
+          }).join('')}
+        `}
+      </div>
+    `;
+    inner.querySelectorAll('[data-open]').forEach(el => el.addEventListener('click', () => openTradeModal(el.dataset.open)));
+  }
+
+  function renderTrades() {
+    updateHeader();
+    const trades = sortedTrades().reverse();
+    const filtered = trades.filter(t => {
+      if (filterState.instrument && t.instrument !== filterState.instrument) return false;
+      if (filterState.setup && t.setup !== filterState.setup) return false;
+      if (filterState.side && t.side !== filterState.side) return false;
+      return true;
+    });
+
+    const uniqueInstruments = [...new Set(trades.map(t => t.instrument).filter(Boolean))].sort();
+    const uniqueSetups = [...new Set(trades.map(t => t.setup).filter(Boolean))].sort();
+
+    if (!trades.length) {
+      inner.innerHTML = `
+        <div class="empty" style="background: var(--surface); border: 1px solid var(--border); border-radius: 8px;">
+          <h3>No trades yet</h3>
+          <p>Log your first trade — your stats update live.</p>
+          <button class="cta" onclick="openWizard()"><span>+</span> New trade</button>
+        </div>
+      `;
+      return;
+    }
+
+    inner.innerHTML = `
+      <div class="filters">
+        <select id="flt-instr">
+          <option value="">All instruments</option>
+          ${uniqueInstruments.map(i => `<option ${filterState.instrument === i ? 'selected' : ''}>${i}</option>`).join('')}
+        </select>
+        <select id="flt-setup">
+          <option value="">All setups</option>
+          ${uniqueSetups.map(s => `<option ${filterState.setup === s ? 'selected' : ''}>${s}</option>`).join('')}
+        </select>
+        <select id="flt-side">
+          <option value="">Long + Short</option>
+          <option value="LONG" ${filterState.side === 'LONG' ? 'selected' : ''}>LONG</option>
+          <option value="SHORT" ${filterState.side === 'SHORT' ? 'selected' : ''}>SHORT</option>
+        </select>
+        <span class="count">${filtered.length} / ${trades.length}</span>
+      </div>
+      <div class="trade-table-wrap">
+        <table class="trades">
+          <thead>
+            <tr>
+              <th></th>
+              <th>Date</th>
+              <th>Instrument</th>
+              <th>Side</th>
+              <th class="right">Entry</th>
+              <th class="right">Stop</th>
+              <th class="right">Exit</th>
+              <th class="right">Size</th>
+              <th class="right">Risk</th>
+              <th class="right">P&L</th>
+              <th class="right">R</th>
+              <th>Setup</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            ${filtered.map(t => {
+              const pnl = tradePnL(t);
+              const r = tradeR(t);
+              const risk = tradeRisk(t);
+              const shots = t.screenshots || [];
+              return `
+              <tr data-open="${t.id}">
+                <td>${shots.length > 0 ? `<img class="shot-thumb" src="${shots[0]}" alt="">` : ''}</td>
+                <td style="color: var(--fg-muted)">${t.date}${t.time ? '<br><span style="font-size:10px;color:var(--fg-dim)">'+t.time+'</span>' : ''}</td>
+                <td>${t.instrument}</td>
+                <td><span class="side-pill ${t.side === 'LONG' ? 'side-long' : 'side-short'}">${t.side}</span></td>
+                <td class="right">${fmtPrice(t.entry)}</td>
+                <td class="right" style="color: var(--fg-muted)">${fmtPrice(t.stop)}</td>
+                <td class="right">${t.exit != null ? fmtPrice(t.exit) : '<span style="color:var(--fg-dim)">—</span>'}</td>
+                <td class="right">${t.size}</td>
+                <td class="right" style="color: var(--fg-muted)">${fmt$(risk)}</td>
+                <td class="right ${pnl > 0 ? 'pnl-pos' : (pnl < 0 ? 'pnl-neg' : '')}">${t.exit != null ? fmt$(pnl, { alwaysSign: true }) : '—'}</td>
+                <td class="right ${r > 0 ? 'pnl-pos' : (r < 0 ? 'pnl-neg' : '')}">${t.exit != null ? fmtR(r) : '—'}</td>
+                <td style="color: var(--fg-muted); font-family: var(--font-sans); font-size: 12px;">${t.setup || '—'}</td>
+                <td class="actions">
+                  <button class="btn-row-icon" data-del="${t.id}" title="Delete">×</button>
+                </td>
+              </tr>`;
+            }).join('')}
+          </tbody>
+        </table>
+      </div>
+    `;
+
+    inner.querySelectorAll('[data-open]').forEach(row => {
+      row.addEventListener('click', (e) => {
+        if (e.target.closest('[data-del]')) return;
+        openTradeModal(row.dataset.open);
+      });
+    });
+    inner.querySelectorAll('[data-del]').forEach(b => b.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      if (!window.confirm('Delete this trade?')) return;
+      state.trades = state.trades.filter(t => t.id !== b.dataset.del);
+      await deleteTradeFromDB(b.dataset.del);
+      renderTrades();
+      toast('Trade deleted');
+    }));
+    document.getElementById('flt-instr').addEventListener('change', (e) => { filterState.instrument = e.target.value; renderTrades(); });
+    document.getElementById('flt-setup').addEventListener('change', (e) => { filterState.setup = e.target.value; renderTrades(); });
+    document.getElementById('flt-side').addEventListener('change', (e) => { filterState.side = e.target.value; renderTrades(); });
+  }
+
+  function renderStats() {
+    updateHeader();
+    const resolved = resolvedTrades();
+    if (!resolved.length) {
+      inner.innerHTML = `
+        <div class="empty" style="background: var(--surface); border: 1px solid var(--border); border-radius: 8px;">
+          <h3>No stats yet</h3>
+          <p>Add a few trades to see your patterns.</p>
+        </div>
+      `;
+      return;
+    }
+
+    const by = (keyFn) => {
+      const groups = {};
+      for (const t of resolved) {
+        const k = keyFn(t) || '—';
+        if (!groups[k]) groups[k] = { n: 0, wins: 0, pnl: 0, r: 0, rCount: 0 };
+        const pnl = tradePnL(t);
+        const r = tradeR(t);
+        groups[k].n += 1;
+        if (pnl > 0) groups[k].wins += 1;
+        groups[k].pnl += pnl;
+        if (!isNaN(r) && isFinite(r)) { groups[k].r += r; groups[k].rCount += 1; }
+      }
+      return Object.entries(groups).sort((a, b) => b[1].pnl - a[1].pnl);
+    };
+
+    const dayName = (dateStr) => {
+      if (!dateStr) return '—';
+      const d = new Date(dateStr + 'T12:00:00');
+      return ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][d.getDay()];
+    };
+
+    const blocks = [
+      { title: 'By instrument', data: by(t => t.instrument) },
+      { title: 'By day of week', data: by(t => dayName(t.date)) },
+      { title: 'By setup', data: by(t => t.setup) },
+      { title: 'By emotion', data: by(t => t.emotion) },
+    ];
+
+    inner.innerHTML = `
+      <div class="section-label">Breakdown</div>
+      <div class="stats-grid">
+        ${blocks.map(b => `
+          <div class="stat-block">
+            <div class="stat-head">${b.title}</div>
+            <div class="stat-row head">
+              <span>Category</span>
+              <span class="mut">N</span>
+              <span class="mut">WR</span>
+              <span class="mut">R̄</span>
+              <span class="mut" style="text-align:right">P&L</span>
+            </div>
+            ${b.data.length === 0 ? '<div class="stat-row"><span class="mut" style="font-family: var(--font-sans);">—</span><span></span><span></span><span></span><span></span></div>' :
+              b.data.map(([name, g]) => `
+                <div class="stat-row">
+                  <span class="name">${name}</span>
+                  <span class="mut">${g.n}</span>
+                  <span class="mut">${fmtPct(g.wins / g.n, 0)}</span>
+                  <span class="mut">${g.rCount ? (g.r/g.rCount).toFixed(2) : '—'}</span>
+                  <span class="${g.pnl > 0 ? 'pnl-pos' : (g.pnl < 0 ? 'pnl-neg' : '')}" style="text-align:right">${fmt$(g.pnl, { alwaysSign: true })}</span>
+                </div>
+              `).join('')}
+          </div>
+        `).join('')}
+      </div>
+    `;
+  }
+
+  function renderSettings() {
+    updateHeader();
+    const instrEntries = Object.entries(state.instruments).sort((a, b) => a[0].localeCompare(b[0]));
+    inner.innerHTML = `
+      <div class="section-label">Settings</div>
+      <div class="settings-grid">
+        <div class="settings-block">
+          <h3>Instruments & $ per point</h3>
+          <p>When you pick an instrument, the $/point auto-fills from this table.</p>
+          <table class="instr-table">
+            <thead><tr><th>Symbol</th><th class="right">$ / point</th><th></th></tr></thead>
+            <tbody>
+              ${instrEntries.length === 0 ? '<tr><td colspan="3" style="color:var(--fg-dim); font-family:var(--font-sans); padding:16px 0; text-align:center;">No instrument — add yours</td></tr>' : instrEntries.map(([k, v]) => `
+                <tr>
+                  <td>${k}</td>
+                  <td class="right">$${v}</td>
+                  <td class="right"><button class="rm" data-rm-instr="${k}">×</button></td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+          <div class="instr-add">
+            <input id="add-sym" type="text" placeholder="SYMBOL" style="text-transform:uppercase;">
+            <input id="add-dpp" type="number" step="0.01" placeholder="$ / point">
+            <button class="btn-ghost" id="btn-add-instr">Add</button>
+          </div>
+        </div>
+
+        <div class="settings-block">
+          <h3>Setups</h3>
+          <p>Your strategies / patterns. They show up as quick picks in the wizard.</p>
+          <div class="chip-list" id="setup-list">
+            ${state.setups.length === 0 ? '<span style="color:var(--fg-dim); font-size:12px;">No setup — add yours below</span>' : state.setups.map(s => `
+              <span class="chip-item" data-chip-setup="${s}">
+                <span>${s}</span>
+                <button class="chip-rm" data-rm-setup="${s}" aria-label="Remove">×</button>
+              </span>
+            `).join('')}
+          </div>
+          <div class="chip-add">
+            <input id="add-setup" type="text" placeholder="e.g. FVG retest, Supply/Demand…">
+            <button class="btn-ghost" id="btn-add-setup">Add</button>
+          </div>
+        </div>
+
+        <div class="settings-block">
+          <h3>Emotions</h3>
+          <p>The states you want to pick from while logging.</p>
+          <div class="chip-list" id="emo-list">
+            ${state.emotions.length === 0 ? '<span style="color:var(--fg-dim); font-size:12px;">No emotion — add yours below</span>' : state.emotions.map(e => `
+              <span class="chip-item" data-chip-emo="${e}">
+                <span>${e}</span>
+                <button class="chip-rm" data-rm-emo="${e}" aria-label="Remove">×</button>
+              </span>
+            `).join('')}
+          </div>
+          <div class="chip-add">
+            <input id="add-emo" type="text" placeholder="e.g. Calm, FOMO, Confident…">
+            <button class="btn-ghost" id="btn-add-emo">Add</button>
+          </div>
+        </div>
+
+        <div class="settings-block">
+          <h3>Backup</h3>
+          <p>Your data lives in this browser (IndexedDB — much more room than localStorage). Export regularly to keep it safe or move it to another device.</p>
+          <p style="color:var(--fg-dim);font-size:11px;">Screenshots are auto-compressed (max 1800px, JPEG 82). The JSON export includes them as base64 — the file can be heavy with many trades.</p>
+          <div class="data-tools">
+            <button class="btn-ghost" id="btn-export">Export as JSON</button>
+            <button class="btn-ghost" id="btn-import">Import from JSON</button>
+            <button class="btn-danger" id="btn-clear">Clear all</button>
+          </div>
+          <input id="import-file" type="file" accept=".json,application/json" hidden>
+        </div>
+
+        <div class="settings-block" style="grid-column: 1 / -1;">
+          <h3>Obsidian sync</h3>
+          <p>Pushes a trade as a markdown note (with wikilinks for instrument / setup / emotion, so Graph view becomes your mind map) plus screenshots, straight into your vault via the <strong>Local REST API</strong> plugin. Requires Obsidian open on this same computer.</p>
+          <div class="form-grid" style="margin-bottom: 14px;">
+            <div class="field">
+              <label>Server URL</label>
+              <input id="ob-url" type="text" value="${state.obsidian.serverUrl}" placeholder="https://127.0.0.1:27124">
+            </div>
+            <div class="field">
+              <label>API key</label>
+              <input id="ob-key" type="password" value="${state.obsidian.apiKey}" placeholder="paste from plugin settings">
+            </div>
+            <div class="field">
+              <label>Notes folder</label>
+              <input id="ob-notes" type="text" value="${state.obsidian.notesFolder}" placeholder="Trades">
+            </div>
+            <div class="field">
+              <label>Attachments folder</label>
+              <input id="ob-attach" type="text" value="${state.obsidian.attachmentsFolder}" placeholder="Trades/attachments">
+            </div>
+          </div>
+          <div class="data-tools">
+            <button class="btn-ghost" id="btn-ob-save">Save connection</button>
+            <button class="btn-ghost" id="btn-ob-test">Test connection</button>
+          </div>
+          <details style="margin-top: 14px;">
+            <summary style="cursor:pointer; font-size:11px; color:var(--fg-muted);">If the connection fails…</summary>
+            <ul style="margin: 10px 0 0; padding-left: 18px; font-size: 11px; color: var(--fg-dim); line-height: 1.7;">
+              <li>Obsidian must be open with the vault loaded, on this same computer.</li>
+              <li>The plugin uses a self-signed certificate. Open <code>https://127.0.0.1:27124</code> directly in a new tab once and accept the browser's security warning — otherwise every request fails silently.</li>
+              <li>If it still fails, the plugin's local server may be blocking cross-origin requests from this site. In that case, use <strong>Copy as Markdown</strong> on a trade instead and paste it into Obsidian by hand — same formatting, no automation.</li>
+            </ul>
+          </details>
+        </div>
+
+        <div class="settings-block" style="grid-column: 1 / -1;">
+          <h3>Notion sync</h3>
+          <p>Pushes a trade into your existing <strong>P&amp;L Journaling Calendar</strong> database — one page per trade, with a summary + screenshots in the body. Works from any device, any time — no app has to be open. The connection runs through a small server function, so no secret is ever stored in this browser.</p>
+          <div class="data-tools">
+            <button class="btn-ghost" id="btn-notion-test">Test connection</button>
+            <span id="notion-status" style="font-size:11px; color:var(--fg-muted); align-self:center;"></span>
+          </div>
+          <details style="margin-top: 14px;" open>
+            <summary style="cursor:pointer; font-size:11px; color:var(--fg-muted);">One-time setup (in Notion + Netlify, not here)</summary>
+            <ol style="margin: 10px 0 0; padding-left: 18px; font-size: 11px; color: var(--fg-dim); line-height: 1.8;">
+              <li>Open your <strong>P&amp;L Journaling Calendar</strong> page in Notion — no new columns needed, it already has what's used: <code>Date</code>, <code>Outcome</code>, <code>EOD P&amp;L</code>, <code>Risk</code>, <code>Time Entry</code>. Everything else the app tracks (instrument, side, entry/stop/exit, size, R multiple, setup, emotion, rating, note, chart link) is written into the page body instead, next to the screenshots.</li>
+              <li>On the database, click <code>•••</code> → <strong>Connections</strong> → connect your integration.</li>
+              <li>Copy the database ID from its URL (the 32-character block before <code>?v=</code> or <code>?source=</code>).</li>
+              <li>In Netlify → Site settings → Environment variables, add <code>NOTION_SECRET</code> (your integration token) and <code>NOTION_DATABASE_ID</code>, then redeploy.</li>
+            </ol>
+          </details>
+        </div>
+      </div>
+    `;
+
+    // Instruments
+    inner.querySelectorAll('[data-rm-instr]').forEach(b => b.addEventListener('click', async () => {
+      delete state.instruments[b.dataset.rmInstr];
+      await saveInstruments();
+      renderSettings();
+      toast('Instrument removed');
+    }));
+    document.getElementById('btn-add-instr').addEventListener('click', async () => {
+      const sym = document.getElementById('add-sym').value.trim().toUpperCase();
+      const dpp = parseFloat(document.getElementById('add-dpp').value);
+      if (!sym || !dpp || dpp <= 0) { toast('Symbol + $/point required'); return; }
+      state.instruments[sym] = dpp;
+      await saveInstruments();
+      renderSettings();
+      toast(sym + ' added');
+    });
+
+    // Setups
+    inner.querySelectorAll('[data-rm-setup]').forEach(b => b.addEventListener('click', async () => {
+      state.setups = state.setups.filter(s => s !== b.dataset.rmSetup);
+      await saveSetups();
+      renderSettings();
+      toast('Setup removed');
+    }));
+    const addSetupHandler = async () => {
+      const el = document.getElementById('add-setup');
+      const val = el.value.trim();
+      if (!val) return;
+      if (state.setups.includes(val)) { toast('Already in list'); return; }
+      state.setups.push(val);
+      await saveSetups();
+      renderSettings();
+      toast(val + ' added');
+    };
+    document.getElementById('btn-add-setup').addEventListener('click', addSetupHandler);
+    document.getElementById('add-setup').addEventListener('keydown', (e) => { if (e.key === 'Enter') addSetupHandler(); });
+
+    // Emotions
+    inner.querySelectorAll('[data-rm-emo]').forEach(b => b.addEventListener('click', async () => {
+      state.emotions = state.emotions.filter(e => e !== b.dataset.rmEmo);
+      await saveEmotions();
+      renderSettings();
+      toast('Emotion removed');
+    }));
+    const addEmoHandler = async () => {
+      const el = document.getElementById('add-emo');
+      const val = el.value.trim();
+      if (!val) return;
+      if (state.emotions.includes(val)) { toast('Already in list'); return; }
+      state.emotions.push(val);
+      await saveEmotions();
+      renderSettings();
+      toast(val + ' added');
+    };
+    document.getElementById('btn-add-emo').addEventListener('click', addEmoHandler);
+    document.getElementById('add-emo').addEventListener('keydown', (e) => { if (e.key === 'Enter') addEmoHandler(); });
+
+    // Data tools
+    document.getElementById('btn-export').addEventListener('click', exportData);
+    document.getElementById('btn-import').addEventListener('click', () => document.getElementById('import-file').click());
+    document.getElementById('import-file').addEventListener('change', importData);
+    document.getElementById('btn-clear').addEventListener('click', clearAll);
+
+    // Obsidian
+    document.getElementById('btn-ob-save').addEventListener('click', async () => {
+      state.obsidian = {
+        serverUrl: document.getElementById('ob-url').value.trim().replace(/\/$/, ''),
+        apiKey: document.getElementById('ob-key').value.trim(),
+        notesFolder: document.getElementById('ob-notes').value.trim() || 'Trades',
+        attachmentsFolder: document.getElementById('ob-attach').value.trim() || 'Trades/attachments',
+      };
+      await saveObsidianSettings();
+      toast('Obsidian settings saved');
+    });
+    document.getElementById('btn-ob-test').addEventListener('click', async () => {
+      state.obsidian.serverUrl = document.getElementById('ob-url').value.trim().replace(/\/$/, '');
+      state.obsidian.apiKey = document.getElementById('ob-key').value.trim();
+      await testObsidianConnection();
+    });
+
+    // Notion
+    document.getElementById('btn-notion-test').addEventListener('click', async () => {
+      const statusEl = document.getElementById('notion-status');
+      statusEl.textContent = 'Checking…';
+      try {
+        const res = await fetch('/.netlify/functions/push-to-notion');
+        const data = await res.json();
+        if (data.ok) {
+          statusEl.textContent = 'Connected ✓';
+          statusEl.style.color = 'var(--win)';
+          toast('Connected to Notion');
+        } else {
+          statusEl.textContent = data.reason || 'Not configured yet';
+          statusEl.style.color = 'var(--loss)';
+        }
+      } catch (err) {
+        statusEl.textContent = 'Function not found — is the site deployed from Git with the function included?';
+        statusEl.style.color = 'var(--loss)';
+      }
+    });
+  }
+
+  // ====================================================================
+  //  Trade modal
+  // ====================================================================
+  let activePasteHandler = null;
+
+  function openTradeModal(id = null, prefill = null) {
+    editingTradeId = id;
+    const existing = id ? state.trades.find(t => t.id === id) : null;
+    const now = new Date();
+    const draft = existing ? JSON.parse(JSON.stringify(existing)) : (prefill ? JSON.parse(JSON.stringify(prefill)) : {
+      id: Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-4),
+      date: now.toISOString().slice(0, 10),
+      time: now.toTimeString().slice(0, 5),
+      instrument: '',
+      side: 'LONG',
+      entry: null,
+      stop: null,
+      exit: null,
+      size: 1,
+      dollarPerPoint: null,
+      setup: '',
+      rating: 3,
+      emotion: '',
+      note: '',
+      chartLink: '',
+      screenshots: [],
+    });
+    if (!draft.screenshots) draft.screenshots = [];
+
+    const backdrop = document.createElement('div');
+    backdrop.className = 'modal-backdrop';
+    backdrop.innerHTML = `
+      <div class="modal">
+        <div class="modal-head">
+          <span class="modal-title">${existing ? 'Trade' : 'New trade'}</span>
+          <button class="modal-close" aria-label="Close">×</button>
+        </div>
+        <div class="modal-body">
+          <div class="side-toggle" id="side-toggle">
+            <button data-side="LONG" class="${draft.side === 'LONG' ? 'active' : ''}">LONG</button>
+            <button data-side="SHORT" class="${draft.side === 'SHORT' ? 'active' : ''}">SHORT</button>
+          </div>
+
+          <div class="form-grid" style="margin-top: 14px;">
+            <div class="field">
+              <label>Instrument</label>
+              <input id="f-instrument" list="instruments-list" type="text" value="${draft.instrument || ''}" placeholder="MNQ, ES, EURUSD...">
+              <datalist id="instruments-list">
+                ${Object.keys(state.instruments).map(k => `<option value="${k}">`).join('')}
+              </datalist>
+            </div>
+            <div class="field">
+              <label>$ per point <span class="hint">auto if known</span></label>
+              <input id="f-dollarPerPoint" type="number" step="0.01" value="${draft.dollarPerPoint ?? ''}">
+            </div>
+            <div class="field">
+              <label>Entry</label>
+              <input id="f-entry" type="number" step="0.01" value="${draft.entry ?? ''}">
+            </div>
+            <div class="field">
+              <label>Stop loss</label>
+              <input id="f-stop" type="number" step="0.01" value="${draft.stop ?? ''}">
+            </div>
+            <div class="field">
+              <label>Exit <span class="hint">empty = open trade</span></label>
+              <input id="f-exit" type="number" step="0.01" value="${draft.exit ?? ''}">
+            </div>
+            <div class="field">
+              <label>Size <span class="hint">contracts / lots</span></label>
+              <input id="f-size" type="number" step="1" min="0" value="${draft.size}">
+            </div>
+            <div class="field">
+              <label>Date</label>
+              <input id="f-date" type="date" value="${draft.date}">
+            </div>
+            <div class="field">
+              <label>Time <span class="hint">optional</span></label>
+              <input id="f-time" type="time" value="${draft.time || ''}">
+            </div>
+            <div class="field full">
+              <label>Setup</label>
+              <input id="f-setup" list="setups-list" type="text" value="${draft.setup || ''}" placeholder="e.g. FVG retest, OB rejection…">
+              <datalist id="setups-list">
+                ${state.setups.map(k => `<option value="${k}">`).join('')}
+              </datalist>
+            </div>
+            <div class="field">
+              <label>Setup rating /5</label>
+              <div class="rating" id="rating-group">
+                ${[1,2,3,4,5].map(n => `<button data-rate="${n}" class="${draft.rating === n ? 'active' : ''}">${n}</button>`).join('')}
+              </div>
+            </div>
+            <div class="field">
+              <label>Emotion</label>
+              ${state.emotions.length > 0 ? `
+                <div class="emo-chips" id="emo-group">
+                  ${state.emotions.map(e => `<button data-emo="${e}" class="${draft.emotion === e ? 'active' : ''}">${e}</button>`).join('')}
+                </div>
+              ` : `
+                <input id="f-emotion-free" type="text" value="${draft.emotion || ''}" placeholder="e.g. Calm, FOMO…">
+              `}
+            </div>
+
+            <div class="field full">
+              <label>Screenshots <span class="hint">paste, drag, or click</span></label>
+              <div class="dropzone" id="dropzone">
+                <div class="dropzone-title">Drop, paste or click to add</div>
+                <div class="dropzone-hint"><kbd>⌘</kbd><kbd>V</kbd> / <kbd>Ctrl</kbd><kbd>V</kbd> from clipboard · drag & drop a file · click for gallery</div>
+              </div>
+              <input id="file-input" type="file" accept="image/*" multiple hidden>
+              <div class="thumbs" id="thumbs"></div>
+            </div>
+
+            <div class="field full">
+              <label>Chart link <span class="hint">optional · TradingView snapshot or other</span></label>
+              <input id="f-chartLink" type="url" value="${draft.chartLink || ''}" placeholder="https://www.tradingview.com/x/...">
+            </div>
+            <div class="field full">
+              <label>Note</label>
+              <textarea id="f-note" placeholder="What you want to remember about this trade">${draft.note || ''}</textarea>
+            </div>
+          </div>
+
+          <div class="live-preview" id="live-preview">
+            <div><label>Risk</label><span id="prev-risk">—</span></div>
+            <div><label>P&L</label><span id="prev-pnl">—</span></div>
+            <div><label>R multiple</label><span id="prev-r">—</span></div>
+          </div>
+        </div>
+        <div class="modal-foot" style="flex-wrap: wrap; gap: 8px;">
+          <div style="display:flex; align-items:center; gap:8px; flex-wrap: wrap;">
+            ${existing ? `<button class="btn-danger" id="del-trade">Delete</button>` : ''}
+            ${existing ? `<button class="btn-ghost" id="push-notion">Push to Notion</button>` : ''}
+            ${existing ? `<button class="btn-ghost" id="push-obsidian">Push to Obsidian</button>` : ''}
+            ${existing ? `<button class="btn-ghost" id="copy-obsidian">Copy as Markdown</button>` : ''}
+            ${existing && draft.notionSynced ? `<span style="font-size:10px; color: var(--win); font-family: var(--font-mono);">✓ Notion</span>` : ''}
+            ${existing && draft.obsidianSynced ? `<span style="font-size:10px; color: var(--win); font-family: var(--font-mono);">✓ Obsidian</span>` : ''}
+            ${!existing ? `<span style="color:var(--fg-dim); font-size:11px;">Saved locally</span>` : ''}
+          </div>
+          <button class="btn-primary" id="save-trade">${existing ? 'Update' : 'Save'}</button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(backdrop);
+
+    const close = () => {
+      if (activePasteHandler) {
+        window.removeEventListener('paste', activePasteHandler);
+        activePasteHandler = null;
+      }
+      backdrop.remove();
+    };
+    backdrop.querySelector('.modal-close').addEventListener('click', close);
+    backdrop.addEventListener('click', (e) => { if (e.target === backdrop) close(); });
+
+    // Side toggle
+    backdrop.querySelector('#side-toggle').querySelectorAll('button').forEach(b => {
+      b.addEventListener('click', () => {
+        draft.side = b.dataset.side;
+        backdrop.querySelectorAll('#side-toggle button').forEach(x => x.classList.toggle('active', x.dataset.side === draft.side));
+        updatePreview();
+      });
+    });
+    backdrop.querySelector('#rating-group').querySelectorAll('button').forEach(b => {
+      b.addEventListener('click', () => {
+        draft.rating = parseInt(b.dataset.rate);
+        backdrop.querySelectorAll('#rating-group button').forEach(x => x.classList.toggle('active', parseInt(x.dataset.rate) === draft.rating));
+      });
+    });
+    const emoGroup = backdrop.querySelector('#emo-group');
+    if (emoGroup) {
+      emoGroup.querySelectorAll('button').forEach(b => {
+        b.addEventListener('click', () => {
+          draft.emotion = draft.emotion === b.dataset.emo ? '' : b.dataset.emo;
+          backdrop.querySelectorAll('#emo-group button').forEach(x => x.classList.toggle('active', x.dataset.emo === draft.emotion));
+        });
+      });
+    }
+    const emoFreeField = backdrop.querySelector('#f-emotion-free');
+    if (emoFreeField) {
+      emoFreeField.addEventListener('input', (e) => { draft.emotion = e.target.value.trim(); });
+    }
+
+    // Instrument auto-fill
+    const instrInput = backdrop.querySelector('#f-instrument');
+    const dollarInput = backdrop.querySelector('#f-dollarPerPoint');
+    instrInput.addEventListener('input', () => {
+      const key = instrInput.value.trim().toUpperCase();
+      let dpp = state.instruments[key];
+      if (dpp == null) {
+        const found = Object.keys(state.instruments).find(k => key.startsWith(k));
+        if (found) dpp = state.instruments[found];
+      }
+      if (dpp != null) dollarInput.value = dpp;
+      updatePreview();
+    });
+
+    // Live preview
+    function readDraft() {
+      draft.instrument = instrInput.value.trim().toUpperCase();
+      draft.entry = parseFloat(backdrop.querySelector('#f-entry').value) || null;
+      draft.stop = parseFloat(backdrop.querySelector('#f-stop').value) || null;
+      const exitVal = backdrop.querySelector('#f-exit').value;
+      draft.exit = exitVal === '' ? null : (parseFloat(exitVal) || null);
+      draft.size = parseFloat(backdrop.querySelector('#f-size').value) || 0;
+      draft.dollarPerPoint = parseFloat(backdrop.querySelector('#f-dollarPerPoint').value) || 0;
+      draft.setup = backdrop.querySelector('#f-setup').value;
+      draft.date = backdrop.querySelector('#f-date').value;
+      draft.time = backdrop.querySelector('#f-time').value;
+      draft.note = backdrop.querySelector('#f-note').value;
+      draft.chartLink = backdrop.querySelector('#f-chartLink').value;
+    }
+    function updatePreview() {
+      readDraft();
+      const risk = tradeRisk(draft);
+      const pnl = draft.exit != null ? tradePnL(draft) : null;
+      const r = draft.exit != null ? tradeR(draft) : null;
+      backdrop.querySelector('#prev-risk').textContent = risk ? fmt$(risk) : '—';
+      const pnlEl = backdrop.querySelector('#prev-pnl');
+      pnlEl.textContent = pnl != null ? fmt$(pnl, { alwaysSign: true }) : '—';
+      pnlEl.className = pnl > 0 ? 'pos' : (pnl < 0 ? 'neg' : '');
+      const rEl = backdrop.querySelector('#prev-r');
+      rEl.textContent = r != null && isFinite(r) ? fmtR(r) : '—';
+      rEl.className = r > 0 ? 'pos' : (r < 0 ? 'neg' : '');
+    }
+    ['entry','stop','exit','size','dollarPerPoint'].forEach(f =>
+      backdrop.querySelector('#f-' + f).addEventListener('input', updatePreview)
+    );
+    updatePreview();
+
+    // ----- Screenshots -----
+    const dropzone = backdrop.querySelector('#dropzone');
+    const fileInput = backdrop.querySelector('#file-input');
+    const thumbs = backdrop.querySelector('#thumbs');
+
+    function renderThumbs() {
+      thumbs.innerHTML = draft.screenshots.map((src, i) => `
+        <div class="thumb-wrap">
+          <img src="${src}" alt="Screenshot ${i+1}" data-view="${i}">
+          <button class="rm-thumb" data-rm="${i}" aria-label="Remove">×</button>
+        </div>
+      `).join('');
+      thumbs.querySelectorAll('[data-view]').forEach(img => {
+        img.addEventListener('click', () => openLightbox(img.src));
+      });
+      thumbs.querySelectorAll('[data-rm]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          draft.screenshots.splice(parseInt(btn.dataset.rm), 1);
+          renderThumbs();
+        });
+      });
+    }
+    renderThumbs();
+
+    async function addFiles(files) {
+      if (!files || !files.length) return;
+      dropzone.querySelector('.dropzone-title').textContent = 'Processing…';
+      const urls = await filesToDataUrls(files);
+      draft.screenshots.push(...urls);
+      dropzone.querySelector('.dropzone-title').textContent = 'Drop, paste or click to add';
+      renderThumbs();
+      if (urls.length) toast(urls.length + ' image' + (urls.length > 1 ? 's' : '') + ' added');
+    }
+
+    dropzone.addEventListener('click', () => fileInput.click());
+    fileInput.addEventListener('change', (e) => addFiles(e.target.files));
+    dropzone.addEventListener('dragover', (e) => { e.preventDefault(); dropzone.classList.add('drag'); });
+    dropzone.addEventListener('dragleave', () => dropzone.classList.remove('drag'));
+    dropzone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      dropzone.classList.remove('drag');
+      addFiles(e.dataTransfer.files);
+    });
+    activePasteHandler = (e) => {
+      const items = e.clipboardData?.items || [];
+      const files = [];
+      for (const it of items) {
+        if (it.kind === 'file') {
+          const f = it.getAsFile();
+          if (f) files.push(f);
+        }
+      }
+      if (files.length) {
+        e.preventDefault();
+        addFiles(files);
+      }
+    };
+    window.addEventListener('paste', activePasteHandler);
+
+    // Save
+    backdrop.querySelector('#save-trade').addEventListener('click', async () => {
+      readDraft();
+      if (!draft.instrument || !draft.entry || !draft.stop || !draft.size || !draft.dollarPerPoint) {
+        toast('Instrument, entry, stop, size and $/point required');
+        return;
+      }
+      // Save instrument to known list if new
+      if (!state.instruments[draft.instrument]) {
+        state.instruments[draft.instrument] = draft.dollarPerPoint;
+        await saveInstruments();
+      }
+      if (draft.setup && !state.setups.includes(draft.setup)) {
+        state.setups.push(draft.setup);
+        await saveSetups();
+      }
+      if (draft.emotion && !state.emotions.includes(draft.emotion)) {
+        state.emotions.push(draft.emotion);
+        await saveEmotions();
+      }
+      if (editingTradeId) {
+        state.trades = state.trades.map(t => t.id === editingTradeId ? draft : t);
+        toast('Trade updated');
+      } else {
+        state.trades.push(draft);
+        toast('Trade saved');
+      }
+      await saveTrade(draft);
+      close();
+      render();
+    });
+
+    if (existing) {
+      backdrop.querySelector('#del-trade').addEventListener('click', async () => {
+        if (!window.confirm('Delete this trade?')) return;
+        state.trades = state.trades.filter(t => t.id !== editingTradeId);
+        await deleteTradeFromDB(editingTradeId);
+        close();
+        render();
+        toast('Trade deleted');
+      });
+      backdrop.querySelector('#push-obsidian').addEventListener('click', async (e) => {
+        e.target.textContent = 'Pushing…';
+        e.target.disabled = true;
+        const ok = await pushTradeToObsidian(draft);
+        e.target.disabled = false;
+        e.target.textContent = 'Push to Obsidian';
+        if (ok) { close(); render(); }
+      });
+      backdrop.querySelector('#copy-obsidian').addEventListener('click', () => {
+        copyTradeAsObsidianMarkdown(draft);
+      });
+      backdrop.querySelector('#push-notion').addEventListener('click', async (e) => {
+        e.target.textContent = 'Pushing…';
+        e.target.disabled = true;
+        const ok = await pushTradeToNotion(draft);
+        e.target.disabled = false;
+        e.target.textContent = 'Push to Notion';
+        if (ok) { close(); render(); }
+      });
+    }
+
+    setTimeout(() => {
+      const target = existing ? backdrop.querySelector('#f-exit') : backdrop.querySelector('#f-instrument');
+      target?.focus();
+    }, 50);
+  }
+
+  // ====================================================================
+  //  Wizard (QCM mode)
+  //  5 quick steps, auto-advance when possible.
+  //  Steps 4-5 skippable. "Detailed mode" link to switch.
+  // ====================================================================
+  let wizPasteHandler = null;
+
+  function openWizard(prefill = null) {
+    const now = new Date();
+    const draft = prefill || {
+      id: Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-4),
+      date: now.toISOString().slice(0, 10),
+      time: now.toTimeString().slice(0, 5),
+      instrument: '',
+      side: null,
+      entry: null,
+      stop: null,
+      exit: null,
+      exitOpen: false,
+      size: null,
+      dollarPerPoint: null,
+      setup: '',
+      rating: null,
+      emotion: '',
+      note: '',
+      chartLink: '',
+      screenshots: [],
+    };
+    if (!draft.screenshots) draft.screenshots = [];
+
+    let step = 1;
+    const totalSteps = 5;
+
+    const backdrop = document.createElement('div');
+    backdrop.className = 'wiz-backdrop';
+    backdrop.innerHTML = `
+      <div class="wiz">
+        <div class="wiz-top">
+          <span class="wiz-step-indicator" id="wiz-ind">1 / ${totalSteps}</span>
+          <div class="wiz-progress-track"><div class="wiz-progress-fill" id="wiz-fill" style="width: ${100/totalSteps}%"></div></div>
+          <button class="wiz-close" aria-label="Close">×</button>
+        </div>
+        <div class="wiz-content" id="wiz-content"></div>
+        <div class="wiz-foot">
+          <button class="back" id="wiz-back" disabled>← Back</button>
+          <span class="spacer"></span>
+          <button class="skip" id="wiz-skip" style="display:none">Skip</button>
+          <button class="next" id="wiz-next">Next</button>
+        </div>
+        <div class="wiz-detailed-link">
+          <button id="wiz-detailed">Open detailed mode</button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(backdrop);
+
+    const content = backdrop.querySelector('#wiz-content');
+    const fill = backdrop.querySelector('#wiz-fill');
+    const ind = backdrop.querySelector('#wiz-ind');
+    const backBtn = backdrop.querySelector('#wiz-back');
+    const nextBtn = backdrop.querySelector('#wiz-next');
+    const skipBtn = backdrop.querySelector('#wiz-skip');
+
+    const close = () => {
+      if (wizPasteHandler) {
+        window.removeEventListener('paste', wizPasteHandler);
+        wizPasteHandler = null;
+      }
+      backdrop.remove();
+    };
+    backdrop.querySelector('.wiz-close').addEventListener('click', close);
+
+    backdrop.querySelector('#wiz-detailed').addEventListener('click', () => {
+      close();
+      openTradeModal(null, draft);
+    });
+
+    function tradeRiskD() { return tradeRisk(draft); }
+    function tradePnLD() { return draft.exit != null && !draft.exitOpen ? tradePnL(draft) : null; }
+    function tradeRD() { const r = tradeR(draft); return draft.exit != null && !draft.exitOpen ? r : null; }
+
+    function updateFoot() {
+      ind.textContent = `${step} / ${totalSteps}`;
+      fill.style.width = (step / totalSteps * 100) + '%';
+      backBtn.disabled = step === 1;
+      skipBtn.style.display = (step === 4 || step === 5) ? 'inline-block' : 'none';
+      nextBtn.textContent = step === totalSteps ? 'Save' : 'Next';
+      nextBtn.classList.toggle('save', step === totalSteps);
+      nextBtn.disabled = !canAdvance();
+    }
+
+    function canAdvance() {
+      if (step === 1) return !!draft.instrument && !!draft.dollarPerPoint;
+      if (step === 2) return !!draft.side && draft.size > 0;
+      if (step === 3) return draft.entry != null && draft.stop != null && (draft.exitOpen || draft.exit != null);
+      return true;
+    }
+
+    function go(next) {
+      if (next > totalSteps) { save(); return; }
+      if (next < 1) return;
+      step = next;
+      renderStep();
+    }
+
+    backBtn.addEventListener('click', () => go(step - 1));
+    nextBtn.addEventListener('click', () => { if (canAdvance()) go(step + 1); });
+    skipBtn.addEventListener('click', () => go(step + 1));
+
+    // Keyboard
+    const onKey = (e) => {
+      if (e.key === 'Enter' && !e.shiftKey && e.target.tagName !== 'TEXTAREA') {
+        e.preventDefault();
+        if (canAdvance()) go(step + 1);
+      } else if (e.key === 'Escape') {
+        close();
+      }
+    };
+    backdrop.addEventListener('keydown', onKey);
+
+    async function save() {
+      if (!draft.instrument || !draft.entry || !draft.stop || !draft.size || !draft.dollarPerPoint) {
+        toast('Missing essential info');
+        return;
+      }
+      if (draft.exitOpen) draft.exit = null;
+      if (!state.instruments[draft.instrument]) {
+        state.instruments[draft.instrument] = draft.dollarPerPoint;
+        await saveInstruments();
+      }
+      if (draft.setup && !state.setups.includes(draft.setup)) {
+        state.setups.push(draft.setup);
+        await saveSetups();
+      }
+      if (draft.emotion && !state.emotions.includes(draft.emotion)) {
+        state.emotions.push(draft.emotion);
+        await saveEmotions();
+      }
+      // If prefill was for an existing trade, replace it
+      const existingIdx = state.trades.findIndex(t => t.id === draft.id);
+      if (existingIdx >= 0) {
+        state.trades[existingIdx] = draft;
+        toast('Trade updated');
+      } else {
+        state.trades.push(draft);
+        toast('Trade saved');
+      }
+      await saveTrade(draft);
+      close();
+      render();
+    }
+
+    // -------------------- Steps renderers --------------------
+    function renderStep() {
+      if (step === 1) return renderInstrument();
+      if (step === 2) return renderSideSize();
+      if (step === 3) return renderPrices();
+      if (step === 4) return renderContext();
+      if (step === 5) return renderReview();
+    }
+
+    function renderInstrument() {
+      const known = Object.entries(state.instruments).sort((a, b) => a[0].localeCompare(b[0]));
+      content.innerHTML = `
+        <div class="wiz-step active">
+          <h2 class="wiz-q">Which instrument?</h2>
+          <p class="wiz-hint">Pick or type the symbol. $/point auto-fills.</p>
+          <div class="wiz-tiles" id="instr-tiles">
+            ${known.map(([sym, dpp]) => `
+              <div class="wiz-tile ${draft.instrument === sym ? 'selected' : ''}" data-sym="${sym}" data-dpp="${dpp}">
+                <span class="tile-main">${sym}</span>
+                <span class="tile-sub">$${dpp}/pt</span>
+              </div>
+            `).join('')}
+          </div>
+          <input class="wiz-custom-input" id="instr-custom" type="text" placeholder="Other symbol…" value="${draft.instrument && !state.instruments[draft.instrument] ? draft.instrument : ''}">
+          <div id="custom-dpp-wrap" style="display:${draft.instrument && !state.instruments[draft.instrument] ? 'block' : 'none'}; margin-top: -8px; margin-bottom: 18px;">
+            <input class="wiz-custom-input" id="instr-custom-dpp" type="number" step="0.01" placeholder="$ per point" value="${draft.instrument && !state.instruments[draft.instrument] ? (draft.dollarPerPoint || '') : ''}">
+          </div>
+        </div>
+      `;
+      content.querySelectorAll('[data-sym]').forEach(el => el.addEventListener('click', () => {
+        draft.instrument = el.dataset.sym;
+        draft.dollarPerPoint = parseFloat(el.dataset.dpp);
+        content.querySelectorAll('[data-sym]').forEach(x => x.classList.toggle('selected', x.dataset.sym === draft.instrument));
+        content.querySelector('#instr-custom').value = '';
+        content.querySelector('#custom-dpp-wrap').style.display = 'none';
+        updateFoot();
+        // Auto-advance after a short beat
+        setTimeout(() => { if (step === 1 && canAdvance()) go(2); }, 320);
+      }));
+      const customEl = content.querySelector('#instr-custom');
+      const customDppWrap = content.querySelector('#custom-dpp-wrap');
+      const customDppEl = content.querySelector('#instr-custom-dpp');
+      customEl.addEventListener('input', () => {
+        const sym = customEl.value.trim().toUpperCase();
+        content.querySelectorAll('[data-sym]').forEach(x => x.classList.remove('selected'));
+        if (sym && state.instruments[sym]) {
+          draft.instrument = sym;
+          draft.dollarPerPoint = state.instruments[sym];
+          customDppWrap.style.display = 'none';
+        } else if (sym) {
+          draft.instrument = sym;
+          customDppWrap.style.display = 'block';
+          draft.dollarPerPoint = parseFloat(customDppEl.value) || null;
+        } else {
+          draft.instrument = '';
+          draft.dollarPerPoint = null;
+          customDppWrap.style.display = 'none';
+        }
+        updateFoot();
+      });
+      customDppEl.addEventListener('input', () => {
+        draft.dollarPerPoint = parseFloat(customDppEl.value) || null;
+        updateFoot();
+      });
+      updateFoot();
+    }
+
+    function renderSideSize() {
+      const presetSizes = [1, 2, 3, 5, 10];
+      content.innerHTML = `
+        <div class="wiz-step active">
+          <h2 class="wiz-q">Direction and size</h2>
+          <p class="wiz-hint">Long or short, and how many contracts / lots.</p>
+          <div class="wiz-side-grid">
+            <div class="wiz-side-tile long ${draft.side === 'LONG' ? 'selected' : ''}" data-side="LONG">
+              <span class="side-arrow">↗</span>
+              <span class="side-label">LONG</span>
+            </div>
+            <div class="wiz-side-tile short ${draft.side === 'SHORT' ? 'selected' : ''}" data-side="SHORT">
+              <span class="side-arrow">↘</span>
+              <span class="side-label">SHORT</span>
+            </div>
+          </div>
+          <div class="wiz-sub-label">Size</div>
+          <div class="wiz-size" id="size-group">
+            ${presetSizes.map(n => `<button data-size="${n}" class="${draft.size === n ? 'selected' : ''}">${n}</button>`).join('')}
+            <input class="wiz-size-custom" id="size-custom" type="number" step="1" min="0" placeholder="other" value="${draft.size && !presetSizes.includes(draft.size) ? draft.size : ''}" inputmode="numeric">
+          </div>
+        </div>
+      `;
+      content.querySelectorAll('[data-side]').forEach(el => el.addEventListener('click', () => {
+        draft.side = el.dataset.side;
+        content.querySelectorAll('[data-side]').forEach(x => x.classList.toggle('selected', x.dataset.side === draft.side));
+        updateFoot();
+        // auto-advance if size also set
+        setTimeout(() => { if (step === 2 && canAdvance()) go(3); }, 320);
+      }));
+      content.querySelectorAll('[data-size]').forEach(el => el.addEventListener('click', () => {
+        draft.size = parseInt(el.dataset.size);
+        content.querySelectorAll('[data-size]').forEach(x => x.classList.toggle('selected', parseInt(x.dataset.size) === draft.size));
+        content.querySelector('#size-custom').value = '';
+        updateFoot();
+      }));
+      content.querySelector('#size-custom').addEventListener('input', (e) => {
+        const v = parseInt(e.target.value);
+        if (v > 0) {
+          draft.size = v;
+          content.querySelectorAll('[data-size]').forEach(x => x.classList.remove('selected'));
+        } else {
+          draft.size = null;
+        }
+        updateFoot();
+      });
+      updateFoot();
+    }
+
+    function renderPrices() {
+      content.innerHTML = `
+        <div class="wiz-step active">
+          <h2 class="wiz-q">Trade prices</h2>
+          <p class="wiz-hint">Entry and stop are required. Leave exit empty if the trade is still open.</p>
+          <div class="wiz-prices">
+            <div class="wiz-price-row">
+              <label>Entry</label>
+              <input id="p-entry" type="number" step="0.01" inputmode="decimal" placeholder="0.00" value="${draft.entry ?? ''}">
+            </div>
+            <div class="wiz-price-row">
+              <label>Stop</label>
+              <input id="p-stop" type="number" step="0.01" inputmode="decimal" placeholder="0.00" value="${draft.stop ?? ''}">
+            </div>
+            <div class="wiz-price-row ${draft.exitOpen ? 'open' : ''}">
+              <label>Exit</label>
+              <input id="p-exit" type="number" step="0.01" inputmode="decimal" placeholder="${draft.exitOpen ? 'open trade' : '0.00'}" value="${draft.exit ?? ''}" ${draft.exitOpen ? 'disabled' : ''}>
+              <button class="pill-open ${draft.exitOpen ? 'active' : ''}" id="exit-open-toggle">Open</button>
+            </div>
+          </div>
+          <div class="wiz-live" id="wiz-live">
+            <div><label>Risk</label><span id="live-risk">—</span></div>
+            <div><label>P&L</label><span id="live-pnl">—</span></div>
+            <div><label>R multiple</label><span id="live-r">—</span></div>
+          </div>
+        </div>
+      `;
+      const update = () => {
+        draft.entry = parseFloat(content.querySelector('#p-entry').value) || null;
+        draft.stop = parseFloat(content.querySelector('#p-stop').value) || null;
+        if (!draft.exitOpen) {
+          draft.exit = parseFloat(content.querySelector('#p-exit').value) || null;
+        }
+        const risk = tradeRiskD();
+        const pnl = tradePnLD();
+        const r = tradeRD();
+        content.querySelector('#live-risk').textContent = risk ? fmt$(risk) : '—';
+        const pnlEl = content.querySelector('#live-pnl');
+        pnlEl.textContent = pnl != null ? fmt$(pnl, { alwaysSign: true }) : '—';
+        pnlEl.className = pnl > 0 ? 'pos' : (pnl < 0 ? 'neg' : '');
+        const rEl = content.querySelector('#live-r');
+        rEl.textContent = r != null && isFinite(r) ? fmtR(r) : '—';
+        rEl.className = r > 0 ? 'pos' : (r < 0 ? 'neg' : '');
+        updateFoot();
+      };
+      content.querySelector('#p-entry').addEventListener('input', update);
+      content.querySelector('#p-stop').addEventListener('input', update);
+      content.querySelector('#p-exit').addEventListener('input', update);
+      content.querySelector('#exit-open-toggle').addEventListener('click', () => {
+        draft.exitOpen = !draft.exitOpen;
+        if (draft.exitOpen) draft.exit = null;
+        renderPrices();
+      });
+      setTimeout(() => content.querySelector('#p-entry').focus(), 60);
+      update();
+    }
+
+    function renderContext() {
+      const hasSetups = state.setups.length > 0;
+      const hasEmotions = state.emotions.length > 0;
+      content.innerHTML = `
+        <div class="wiz-step active">
+          <h2 class="wiz-q">A bit of context?</h2>
+          <p class="wiz-hint">Optional — but this is what makes the best stats.</p>
+
+          <div class="wiz-sub-label">Setup</div>
+          ${hasSetups ? `
+            <div class="wiz-tiles">
+              ${state.setups.map(s => `
+                <div class="wiz-tile ${draft.setup === s ? 'selected' : ''}" data-setup="${s}">
+                  <span class="tile-main" style="font-family: var(--font-sans); font-size: 12px; font-weight: 500;">${s}</span>
+                </div>
+              `).join('')}
+            </div>
+          ` : `
+            <input class="wiz-custom-input" id="setup-free" type="text" placeholder="Type your setup — it'll be added to your list" value="${draft.setup || ''}" style="text-transform:none;">
+            <p style="font-size: 10px; color: var(--fg-dim); margin: -10px 0 18px; letter-spacing: 0.03em;">Tip: add your usual setups in Settings to pick them in one click.</p>
+          `}
+
+          <div class="wiz-sub-label">Setup rating</div>
+          <div class="wiz-rating" id="rate-group">
+            ${[1,2,3,4,5].map(n => `<button data-rate="${n}" class="${draft.rating === n ? 'selected' : ''}">${n}</button>`).join('')}
+          </div>
+
+          <div class="wiz-sub-label">Emotion</div>
+          ${hasEmotions ? `
+            <div class="emo-chips" style="margin-bottom: 18px;" id="emo-group">
+              ${state.emotions.map(e => `<button data-emo="${e}" class="${draft.emotion === e ? 'active' : ''}">${e}</button>`).join('')}
+            </div>
+          ` : `
+            <input class="wiz-custom-input" id="emo-free" type="text" placeholder="How did you feel?" value="${draft.emotion || ''}" style="text-transform:none; margin-bottom: 18px;">
+          `}
+        </div>
+      `;
+      content.querySelectorAll('[data-setup]').forEach(el => el.addEventListener('click', () => {
+        draft.setup = draft.setup === el.dataset.setup ? '' : el.dataset.setup;
+        content.querySelectorAll('[data-setup]').forEach(x => x.classList.toggle('selected', x.dataset.setup === draft.setup));
+      }));
+      content.querySelectorAll('[data-rate]').forEach(el => el.addEventListener('click', () => {
+        const v = parseInt(el.dataset.rate);
+        draft.rating = draft.rating === v ? null : v;
+        content.querySelectorAll('[data-rate]').forEach(x => x.classList.toggle('selected', parseInt(x.dataset.rate) === draft.rating));
+      }));
+      content.querySelectorAll('[data-emo]').forEach(el => el.addEventListener('click', () => {
+        draft.emotion = draft.emotion === el.dataset.emo ? '' : el.dataset.emo;
+        content.querySelectorAll('[data-emo]').forEach(x => x.classList.toggle('active', x.dataset.emo === draft.emotion));
+      }));
+      const setupFree = content.querySelector('#setup-free');
+      if (setupFree) setupFree.addEventListener('input', (e) => { draft.setup = e.target.value.trim(); });
+      const emoFree = content.querySelector('#emo-free');
+      if (emoFree) emoFree.addEventListener('input', (e) => { draft.emotion = e.target.value.trim(); });
+      updateFoot();
+    }
+
+    function renderReview() {
+      const risk = tradeRiskD();
+      const pnl = tradePnLD();
+      const r = tradeRD();
+      content.innerHTML = `
+        <div class="wiz-step active">
+          <h2 class="wiz-q">One screenshot and we're done?</h2>
+          <p class="wiz-hint">Paste (Ctrl+V), drag, or tap the zone. Then check the recap.</p>
+          <div class="wiz-drop" id="wiz-drop">
+            <div class="wiz-drop-title" id="wiz-drop-title">Drop, paste or tap</div>
+            <div class="wiz-drop-hint"><kbd>⌘</kbd><kbd>V</kbd> / <kbd>Ctrl</kbd><kbd>V</kbd> from clipboard · drag & drop · click</div>
+          </div>
+          <input id="wiz-file" type="file" accept="image/*" multiple hidden>
+          <div class="thumbs" id="wiz-thumbs" style="margin-bottom: 14px;"></div>
+
+          <textarea class="wiz-note" id="wiz-note" placeholder="Note (optional) — what you want to remember">${draft.note || ''}</textarea>
+          <input class="wiz-link" id="wiz-link" type="url" placeholder="Chart link (optional) — TradingView, Imgur…" value="${draft.chartLink || ''}">
+
+          <div class="wiz-result" style="margin-top: 20px;">
+            <div><label>Risk</label><span>${risk ? fmt$(risk) : '—'}</span></div>
+            <div><label>P&L</label><span class="${pnl > 0 ? 'pos' : (pnl < 0 ? 'neg' : '')}">${pnl != null ? fmt$(pnl, { alwaysSign: true }) : 'open'}</span></div>
+            <div><label>R</label><span class="${r > 0 ? 'pos' : (r < 0 ? 'neg' : '')}">${r != null && isFinite(r) ? fmtR(r) : '—'}</span></div>
+          </div>
+
+          <div class="wiz-review">
+            <div class="wiz-review-row">
+              <label>Instrument</label>
+              <span>${draft.instrument} <span class="muted">· $${draft.dollarPerPoint}/pt</span></span>
+            </div>
+            <div class="wiz-review-row">
+              <label>Side / Size</label>
+              <span style="color: var(--${draft.side === 'LONG' ? 'accent' : 'loss'})">${draft.side}</span><span class="muted">×${draft.size}</span>
+            </div>
+            <div class="wiz-review-row">
+              <label>Prices</label>
+              <span>${fmtPrice(draft.entry)} <span class="muted">→</span> ${draft.exitOpen ? '<span class="muted">open</span>' : fmtPrice(draft.exit)} <span class="muted">· SL ${fmtPrice(draft.stop)}</span></span>
+            </div>
+            ${draft.setup || draft.emotion || draft.rating ? `
+            <div class="wiz-review-row">
+              <label>Context</label>
+              <span style="font-family: var(--font-sans);">
+                ${draft.setup ? draft.setup : '<span class="muted">—</span>'}
+                ${draft.rating ? ' <span class="muted">·</span> ' + draft.rating + '/5' : ''}
+                ${draft.emotion ? ' <span class="muted">·</span> ' + draft.emotion : ''}
+              </span>
+            </div>
+            ` : ''}
+            <div class="wiz-review-row">
+              <label>Date</label>
+              <span>${draft.date}${draft.time ? ' <span class="muted">·</span> ' + draft.time : ''}</span>
+            </div>
+          </div>
+        </div>
+      `;
+
+      const dropzone = content.querySelector('#wiz-drop');
+      const fileInput = content.querySelector('#wiz-file');
+      const thumbs = content.querySelector('#wiz-thumbs');
+      const noteEl = content.querySelector('#wiz-note');
+      const linkEl = content.querySelector('#wiz-link');
+
+      function renderThumbs() {
+        thumbs.innerHTML = draft.screenshots.map((src, i) => `
+          <div class="thumb-wrap">
+            <img src="${src}" alt="Screenshot ${i+1}" data-view="${i}">
+            <button class="rm-thumb" data-rm="${i}" aria-label="Remove">×</button>
+          </div>
+        `).join('');
+        thumbs.querySelectorAll('[data-view]').forEach(img => img.addEventListener('click', () => openLightbox(img.src)));
+        thumbs.querySelectorAll('[data-rm]').forEach(btn => btn.addEventListener('click', () => {
+          draft.screenshots.splice(parseInt(btn.dataset.rm), 1);
+          renderThumbs();
+        }));
+      }
+      renderThumbs();
+
+      async function addFiles(files) {
+        if (!files || !files.length) return;
+        content.querySelector('#wiz-drop-title').textContent = 'Processing…';
+        const urls = await filesToDataUrls(files);
+        draft.screenshots.push(...urls);
+        content.querySelector('#wiz-drop-title').textContent = 'Drop, paste or tap';
+        renderThumbs();
+        if (urls.length) toast(urls.length + ' image' + (urls.length > 1 ? 's' : '') + ' added');
+      }
+
+      dropzone.addEventListener('click', () => fileInput.click());
+      fileInput.addEventListener('change', (e) => addFiles(e.target.files));
+      dropzone.addEventListener('dragover', (e) => { e.preventDefault(); dropzone.classList.add('drag'); });
+      dropzone.addEventListener('dragleave', () => dropzone.classList.remove('drag'));
+      dropzone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        dropzone.classList.remove('drag');
+        addFiles(e.dataTransfer.files);
+      });
+      noteEl.addEventListener('input', () => { draft.note = noteEl.value; });
+      linkEl.addEventListener('input', () => { draft.chartLink = linkEl.value; });
+
+      if (wizPasteHandler) window.removeEventListener('paste', wizPasteHandler);
+      wizPasteHandler = (e) => {
+        const items = e.clipboardData?.items || [];
+        const files = [];
+        for (const it of items) {
+          if (it.kind === 'file') {
+            const f = it.getAsFile();
+            if (f) files.push(f);
+          }
+        }
+        if (files.length) {
+          e.preventDefault();
+          addFiles(files);
+        }
+      };
+      window.addEventListener('paste', wizPasteHandler);
+      updateFoot();
+    }
+
+    renderStep();
+  }
+
+  function openLightbox(src) {
+    const lb = document.createElement('div');
+    lb.className = 'lightbox';
+    lb.innerHTML = `<img src="${src}" alt="">`;
+    lb.addEventListener('click', () => lb.remove());
+    document.addEventListener('keydown', function onKey(e) {
+      if (e.key === 'Escape') { lb.remove(); document.removeEventListener('keydown', onKey); }
+    });
+    document.body.appendChild(lb);
+  }
+
+  // ====================================================================
+  //  Export / Import / Clear
+  // ====================================================================
+  async function exportData() {
+    const payload = {
+      v: 1,
+      exported: new Date().toISOString(),
+      trades: state.trades,
+      instruments: state.instruments,
+      setups: state.setups,
+      emotions: state.emotions,
+    };
+    const data = JSON.stringify(payload, null, 2);
+    const blob = new Blob([data], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const win = window.open(url, '_blank');
+    if (!win) {
+      try {
+        await navigator.clipboard.writeText(data);
+        toast('Export copied to clipboard');
+      } catch {
+        toast('Export failed — try again');
+      }
+    } else {
+      toast('Export opened — save the page (Cmd/Ctrl+S)');
+    }
+  }
+  function importData(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = async (ev) => {
+      try {
+        const parsed = JSON.parse(ev.target.result);
+        if (!Array.isArray(parsed.trades)) { toast('Invalid format'); return; }
+        if (!window.confirm(`Import ${parsed.trades.length} trade(s)? This will replace your current data.`)) return;
+        await dbClear('trades');
+        state.trades = parsed.trades;
+        if (parsed.instruments && typeof parsed.instruments === 'object') {
+          state.instruments = parsed.instruments;
+          await saveInstruments();
+        }
+        if (Array.isArray(parsed.setups)) {
+          state.setups = parsed.setups;
+          await saveSetups();
+        }
+        if (Array.isArray(parsed.emotions)) {
+          state.emotions = parsed.emotions;
+          await saveEmotions();
+        }
+        for (const t of state.trades) await saveTrade(t);
+        render();
+        toast('Imported');
+      } catch (err) {
+        console.error(err);
+        toast('Read error');
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = '';
+  }
+  async function clearAll() {
+    if (!window.confirm('Really clear everything? This action is irreversible.')) return;
+    await dbClear('trades');
+    await dbClear('settings');
+    state = { trades: [], instruments: { ...DEFAULT_INSTRUMENTS }, setups: [], emotions: [], obsidian: { ...DEFAULT_OBSIDIAN } };
+    render();
+    toast('Data cleared');
+  }
+
+  // ====================================================================
+  //  Routing & init
+  // ====================================================================
+  function render() {
+    const views = { dash: renderDashboard, trades: renderTrades, stats: renderStats, settings: renderSettings };
+    (views[currentView] || renderDashboard)();
+  }
+
+  document.getElementById('tabs').addEventListener('click', (e) => {
+    const btn = e.target.closest('.tab');
+    if (!btn) return;
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    btn.classList.add('active');
+    currentView = btn.dataset.view;
+    render();
+  });
+
+  document.getElementById('btn-new-trade').addEventListener('click', () => openWizard());
+
+  const validViews = ['dash','trades','stats','settings'];
+  function applyHash() {
+    const h = location.hash.replace('#','');
+    if (validViews.includes(h)) {
+      currentView = h;
+      document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.view === h));
+      render();
+    }
+  }
+  window.addEventListener('hashchange', applyHash);
+
+  window.openTradeModal = openTradeModal;
+  window.openWizard = openWizard;
+
+  // Boot
+  (async () => {
+    await loadState();
+    applyHash();
+    render();
+  })();
+</script>
