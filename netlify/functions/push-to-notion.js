@@ -227,15 +227,22 @@ exports.handler = async (event) => {
       })),
     ];
 
-    // 4. Create the page in the database.
+    // 4. Create the page in the database. The first screenshot (if any) is
+    //    also set as the page cover, so gallery views in Notion show the
+    //    chart image first, with the trade's properties underneath.
+    const pageBody = {
+      parent: { type: 'data_source_id', data_source_id: databaseId },
+      properties,
+      children,
+    };
+    if (fileUploadIds.length > 0) {
+      pageBody.cover = { type: 'file_upload', file_upload: { id: fileUploadIds[0] } };
+    }
+
     const pageRes = await fetch(`${NOTION_API}/pages`, {
       method: 'POST',
       headers: notionHeaders(secret, { 'Content-Type': 'application/json' }),
-      body: JSON.stringify({
-        parent: { type: 'data_source_id', data_source_id: databaseId },
-        properties,
-        children,
-      }),
+      body: JSON.stringify(pageBody),
     });
 
     if (!pageRes.ok) {
