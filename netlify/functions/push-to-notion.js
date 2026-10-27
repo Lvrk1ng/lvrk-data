@@ -10,25 +10,35 @@
 //   screenshots: ["data:image/jpeg;base64,...", ...]   // already compressed client-side
 // }
 //
-// Mapped onto the user's existing "P&L Journaling Calendar" template.
-// That template's own database properties (seen directly in the page, under
-// the "ABOUT TRADE" group) are: Date, Outcome, EOD (%), EOD P&L, Risk,
-// Trade Counter, Time Entry, Timeframe Entry, Timezone, Price Action,
-// Rules Followed, SMT — plus an "ABOUT NEWS" / "FORECAST" / "AFTERCAST"
-// group (News, Weekly Forecast, EOTW Results, …) that is for the user's own
-// manual weekly planning and is intentionally left alone here.
+// Mapped onto the user's actual "Lvrk data" database (their own copy of the
+// "P&L Journaling Calendar" template), schema confirmed directly from
+// Notion and cleaned up there to match (EOD P&L and Risk are now proper
+// Number columns). Quirks that still apply:
+//   - The title property is called "Ticker", not "Name".
+//   - "Time Entry" is a multi-select of fixed killzone time blocks
+//     (e.g. "9:30-9:44", "OUTSIDE KILLZONE"), not freeform text, so an
+//     arbitrary trade time can't be written there — it goes in the body
+//     instead.
+//   - "Outcome" is a select with exactly: WIN, LOSS, BREAK-EVEN, NO TRADES.
 //
 // Only the columns the app actually has real data for are written:
-//   Date, Outcome, EOD P&L, Risk, Time Entry
+//   Date, Outcome, EOD P&L, Risk
 // Everything else the app tracks (instrument, side, entry/stop/exit, size,
-// R multiple, setup, emotion, rating, note, chart link) has no column in
-// this template, so it goes into the page body instead — a summary
-// paragraph plus the screenshot images — rather than inventing new columns
-// and breaking "the same framework".
+// R multiple, setup, emotion, rating, note, chart link, time) has no usable
+// column in this template, so it goes into the page body instead — a
+// summary paragraph plus the screenshot images — rather than inventing new
+// columns and breaking "the same framework".
 //
-// The title property's actual name can vary (Notion lets the user rename
-// it), so it's resolved once from the database schema instead of being
-// hardcoded.
+// The title property's actual name is resolved from the database schema
+// rather than hardcoded, since it's user-renameable (confirmed "Ticker" for
+// this workspace, but this keeps it correct even if renamed again).
+//
+// NOTION_VERSION below is recent enough that Notion's "data sources" model
+// applies (a database can hold more than one data source; pages belong to
+// a data source, not directly to the database). So NOTION_DATABASE_ID here
+// must be the data source ID, not the database's own page ID — for this
+// workspace's single-source database that's the ID copied from the
+// database's "Copy link to view" URL.
 
 // File Upload API needs a recent version — the 2022 version predates it.
 const NOTION_VERSION = '2026-03-11';
@@ -60,9 +70,9 @@ function dataUrlToBuffer(dataUrl) {
 // Finds the name of the database's title property (the one that fills the
 // page heading). It's almost always called "Name", but Notion lets anyone
 // rename it, so this reads it from the schema instead of assuming.
-async function getTitlePropertyName(secret, databaseId) {
+async function getTitlePropertyName(secret, dataSourceId) {
   try {
-    const res = await fetch(`${NOTION_API}/databases/${databaseId}`, {
+    const res = await fetch(`${NOTION_API}/data_sources/${dataSourceId}`, {
       headers: notionHeaders(secret),
     });
     if (!res.ok) return 'Name';
@@ -72,10 +82,6 @@ async function getTitlePropertyName(secret, databaseId) {
   } catch {
     return 'Name';
   }
-}
-
-function richText(content) {
-  return { rich_text: [{ text: { content: String(content).slice(0, 2000) } }] };
 }
 
 // Uploads one image to Notion via the File Upload API (create -> send),
@@ -125,9 +131,9 @@ exports.handler = async (event) => {
     if (!secret || !databaseId) {
       return json(200, { ok: false, reason: 'Missing NOTION_SECRET or NOTION_DATABASE_ID env vars in Netlify' });
     }
-    // Confirm the integration token and database are actually reachable.
+    // Confirm the integration token and data source are actually reachable.
     try {
-      const res = await fetch(`${NOTION_API}/databases/${databaseId}`, {
+      const res = await fetch(`${NOTION_API}/data_sources/${databaseId}`, {
         headers: notionHeaders(secret),
       });
       if (!res.ok) {
@@ -185,7 +191,6 @@ exports.handler = async (event) => {
       'Outcome': outcome ? { select: { name: outcome } } : undefined,
       'EOD P&L': trade.pnl != null ? { number: trade.pnl } : undefined,
       'Risk': trade.risk != null ? { number: trade.risk } : undefined,
-      'Time Entry': trade.time ? richText(trade.time) : undefined,
     };
     // Strip undefined keys (Notion rejects them).
     Object.keys(properties).forEach((k) => properties[k] === undefined && delete properties[k]);
@@ -196,6 +201,7 @@ exports.handler = async (event) => {
     //    block per screenshot.
     const summaryLines = [
       `${trade.instrument} ${trade.side || ''}`.trim(),
+      trade.time ? `Time: ${trade.time}` : null,
       trade.entry != null ? `Entry: ${trade.entry}` : null,
       trade.stop != null ? `Stop: ${trade.stop}` : null,
       trade.exit != null ? `Exit: ${trade.exit}` : null,
@@ -226,7 +232,7 @@ exports.handler = async (event) => {
       method: 'POST',
       headers: notionHeaders(secret, { 'Content-Type': 'application/json' }),
       body: JSON.stringify({
-        parent: { database_id: databaseId },
+        parent: { type: 'data_source_id', data_source_id: databaseId },
         properties,
         children,
       }),

@@ -2358,7 +2358,7 @@
 
         <div class="settings-block" style="grid-column: 1 / -1;">
           <h3>Notion sync</h3>
-          <p>Pushes a trade into your existing <strong>P&amp;L Journaling Calendar</strong> database — one page per trade, with a summary + screenshots in the body. Works from any device, any time — no app has to be open. The connection runs through a small server function, so no secret is ever stored in this browser.</p>
+          <p>Pushes a trade into your <strong>Lvrk data</strong> database in Notion — one page per trade, with a summary + screenshots in the body. Works from any device, any time — no app has to be open. The connection runs through a small server function, so no secret is ever stored in this browser.</p>
           <div class="data-tools">
             <button class="btn-ghost" id="btn-notion-test">Test connection</button>
             <span id="notion-status" style="font-size:11px; color:var(--fg-muted); align-self:center;"></span>
@@ -2366,10 +2366,10 @@
           <details style="margin-top: 14px;" open>
             <summary style="cursor:pointer; font-size:11px; color:var(--fg-muted);">One-time setup (in Notion + Netlify, not here)</summary>
             <ol style="margin: 10px 0 0; padding-left: 18px; font-size: 11px; color: var(--fg-dim); line-height: 1.8;">
-              <li>Open your <strong>P&amp;L Journaling Calendar</strong> page in Notion — no new columns needed, it already has what's used: <code>Date</code>, <code>Outcome</code>, <code>EOD P&amp;L</code>, <code>Risk</code>, <code>Time Entry</code>. Everything else the app tracks (instrument, side, entry/stop/exit, size, R multiple, setup, emotion, rating, note, chart link) is written into the page body instead, next to the screenshots.</li>
-              <li>On the database, click <code>•••</code> → <strong>Connections</strong> → connect your integration.</li>
-              <li>Copy the database ID from its URL (the 32-character block before <code>?v=</code> or <code>?source=</code>).</li>
-              <li>In Netlify → Site settings → Environment variables, add <code>NOTION_SECRET</code> (your integration token) and <code>NOTION_DATABASE_ID</code>, then redeploy.</li>
+              <li>No new columns needed — the database already has what's used: <code>Date</code>, <code>Outcome</code>, <code>EOD P&amp;L</code>, <code>Risk</code>. Everything else the app tracks (instrument, side, time, entry/stop/exit, size, R multiple, setup, emotion, rating, note, chart link) is written into the page body instead, next to the screenshots.</li>
+              <li>On the database, click <code>•••</code> → <strong>Connections</strong> → connect your integration (the one you created for the API token).</li>
+              <li>Copy the database ID from its URL (the 32-character block before <code>?v=</code> or <code>?source=</code> in the full-page database link, or in the data source's own link).</li>
+              <li>In Netlify → Site configuration → Environment variables, add <code>NOTION_SECRET</code> (your integration token) and <code>NOTION_DATABASE_ID</code>, then redeploy.</li>
             </ol>
           </details>
         </div>
